@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/data/data/com.termux/files/usr/bin/bash
 # LSP 冒烟：启动 installDist 产物，跑 initialize + didOpen + completion
 set -euo pipefail
 cd "$(dirname "$0")/.."
