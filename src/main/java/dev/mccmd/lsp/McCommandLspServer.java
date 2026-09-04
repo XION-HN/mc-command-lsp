@@ -34,22 +34,63 @@ public final class McCommandLspServer {
     private final Map<String, String> docs = new HashMap<>();
     private volatile String version;
 
-    private final InputStream in;
-    private final OutputStream out;
+    private InputStream in;
+    private OutputStream out;
 
     public McCommandLspServer(String commandsPath, String itemsPath) throws IOException {
-        this.commands = new CommandIndex(commandsPath);
-        this.items = new ItemIndex(itemsPath);
+        this(new CommandIndex(commandsPath), new ItemIndex(itemsPath));
+    }
+
+    /** 共享已加载数据，绑定到指定流（stdin/stdout 或 TCP socket）。 */
+    McCommandLspServer(CommandIndex commands, ItemIndex items,
+                       InputStream in, OutputStream out) {
+        this.commands = commands;
+        this.items = items;
         this.completer = new CommandCompleter(commands, items);
         this.version = commands.defaultVersion();
-        this.in = new BufferedInputStream(System.in);
-        this.out = System.out;
+        this.in = in;
+        this.out = out;
+    }
+
+    McCommandLspServer(CommandIndex commands, ItemIndex items) {
+        this(commands, items, new BufferedInputStream(System.in), System.out);
     }
 
     public static void main(String[] args) throws Exception {
-        String cmds = args.length > 0 ? args[0] : "data/commands.json";
-        String items = args.length > 1 ? args[1] : "data/items.json";
-        new McCommandLspServer(cmds, items).loop();
+        // 用法:
+        //   stdio: mc-command-lsp <commands.json> <items.json>
+        //   tcp:   mc-command-lsp --tcp <port> <commands.json> <items.json>
+        if (args.length >= 1 && "--tcp".equals(args[0])) {
+            int port = Integer.parseInt(args[1]);
+            String cmds = args[2];
+            String items = args[3];
+            CommandIndex c = new CommandIndex(cmds);
+            ItemIndex i = new ItemIndex(items);
+            try (java.net.ServerSocket ss = new java.net.ServerSocket(port)) {
+                System.err.println("mc-command-lsp listening on :" + port);
+                while (true) {
+                    java.net.Socket s = ss.accept();
+                    s.setTcpNoDelay(true);
+                    McCommandLspServer srv = new McCommandLspServer(
+                            c, i, new BufferedInputStream(s.getInputStream()), s.getOutputStream());
+                    Thread t = new Thread(() -> {
+                        try {
+                            srv.loop();
+                        } catch (Exception e) {
+                            // 单连接异常不影响其它连接
+                        } finally {
+                            try { s.close(); } catch (java.io.IOException ignored) {}
+                        }
+                    }, "mc-lsp-conn");
+                    t.setDaemon(true);
+                    t.start();
+                }
+            }
+        } else {
+            String cmds = args.length > 0 ? args[0] : "data/commands.json";
+            String items = args.length > 1 ? args[1] : "data/items.json";
+            new McCommandLspServer(cmds, items).loop();
+        }
     }
 
     /** 读取/处理消息直至 EOF 或收到 exit。 */
