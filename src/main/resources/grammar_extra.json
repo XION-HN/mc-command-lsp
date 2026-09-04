@@ -218,6 +218,65 @@
         { "name": "动作", "type": "enum", "values": ["clear", "reset", "title", "subtitle", "actionbar"], "required": true },
         { "name": "文本", "type": "string", "required": false }
       ] } ]
+    },
+    "defaultgamemode": {
+      "name": "defaultgamemode", "description_cn": "默认游戏模式", "description_en": "Default gamemode",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "模式", "type": "enum", "values": ["survival", "creative", "adventure", "spectator"], "required": true }
+      ] } ]
+    },
+    "gamemode": {
+      "name": "gamemode", "description_cn": "设置游戏模式", "description_en": "Gamemode",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "模式", "type": "enum", "values": ["survival", "creative", "adventure", "spectator"], "required": true },
+        { "name": "目标", "type": "player", "required": false }
+      ] } ]
+    },
+    "list": {
+      "name": "list", "description_cn": "在线玩家列表", "description_en": "List players",
+      "overloads": [ { "versions": "*", "params": [] } ]
+    },
+    "kick": {
+      "name": "kick", "description_cn": "踢出玩家", "description_en": "Kick",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "目标", "type": "player", "required": true },
+        { "name": "原因", "type": "text", "required": false }
+      ] } ]
+    },
+    "op": {
+      "name": "op", "description_cn": "设为管理员", "description_en": "Op",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "目标", "type": "player", "required": true }
+      ] } ]
+    },
+    "deop": {
+      "name": "deop", "description_cn": "取消管理员", "description_en": "Deop",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "目标", "type": "player", "required": true }
+      ] } ]
+    },
+    "setworldspawn": {
+      "name": "setworldspawn", "description_cn": "设置世界出生点", "description_en": "Set world spawn",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "x", "type": "coordinate", "required": false },
+        { "name": "y", "type": "coordinate", "required": false },
+        { "name": "z", "type": "coordinate", "required": false }
+      ] } ]
+    },
+    "spawnpoint": {
+      "name": "spawnpoint", "description_cn": "设置玩家出生点", "description_en": "Spawn point",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "目标", "type": "player", "required": false },
+        { "name": "x", "type": "coordinate", "required": false },
+        { "name": "y", "type": "coordinate", "required": false },
+        { "name": "z", "type": "coordinate", "required": false }
+      ] } ]
+    },
+    "function": {
+      "name": "function", "description_cn": "运行函数", "description_en": "Run function",
+      "overloads": [ { "versions": "*", "params": [
+        { "name": "函数路径", "type": "string", "required": true, "description_cn": "如 namespace:main" }
+      ] } ]
     }
   }
 }
