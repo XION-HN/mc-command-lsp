@@ -90,7 +90,9 @@ public class CommandCompleterTest {
         assertTrue("run 后递归补命令名",
                 r2.suggestions.stream().anyMatch(s -> "give".equals(s.insertText)));
         Result r3 = cc.complete("/execute as @a run give @p wool ", "1.21.60");
-        assertEquals("数量", r3.currentParam);
+        // 数量(int 无可选项)被可选跳词跳过 → 落到数据值(有 wool 特殊值候选)
+        assertEquals("数据值", r3.currentParam);
+        assertTrue(r3.suggestions.stream().anyMatch(s -> "0 - 白色羊毛".equals(s.label)));
     }
 
     @Test
@@ -109,8 +111,18 @@ public class CommandCompleterTest {
     }
 
     @Test
-    public void effect_clear_thenOptionalEffect() {
-        Result r = cc.complete("/effect clear @p ", "1.21.60");
-        assertEquals("效果", r.currentParam);
+    public void setblock_compactCoords_skipsCoordinatesGroup() {
+        Result r = cc.complete("/setblock ~~~ stone ", "1.21.60");
+        // stone 无可选数据值候选 → 自动跳到 模式(destroy/keep/replace)
+        assertEquals("模式", r.currentParam);
+        assertTrue(r.suggestions.stream().anyMatch(s -> "destroy".equals(s.insertText)));
+    }
+
+    @Test
+    public void setblock_compactOffsetCoords_thenDataThenMode() {
+        Result r = cc.complete("/setblock ~13~13~13 wool 1 des", "1.21.60");
+        assertEquals("模式", r.currentParam);
+        assertTrue(r.suggestions.stream().anyMatch(s -> "destroy".equals(s.insertText)));
+        assertTrue(r.errors.isEmpty());
     }
 }

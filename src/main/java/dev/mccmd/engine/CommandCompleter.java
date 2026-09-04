@@ -152,20 +152,79 @@ public final class CommandCompleter {
                 idx++; // 可选参数未填，跳到下一个
             }
             if (idx >= params.size()) break;
-            if (consumedItemId == null && params.get(idx).type.equals("item")) {
+            ParamDef cur = params.get(idx);
+            if (cur.type.equals("item") && consumedItemId == null) {
                 consumedItemId = tok;
             }
-            idx++;
+            int step = 1;
+            if (cur.type.equals("coordinate")) {
+                // 紧凑相对坐标（~13~13~13 / ~~~）按含几个坐标一次推进几步
+                int f = fusedCoords(tok);
+                if (f > 1) step = f;
+            }
+            idx += step;
+            if (idx > params.size()) idx = params.size();
         }
 
         if (idx >= params.size()) {
             return new Result(Collections.emptyList(), null,
                     errors.isEmpty() ? Collections.emptyList() : errors, prefix);
         }
+        int curIdx = idx;
         ParamDef cur = params.get(idx);
         List<Suggestion> sug = suggestFor(cur, prefix, consumedItemId);
+        // 可选参数空值（未输入、无候选）时跳到下一个能出候选的可选参数（如 setblock 省略 data → 提示 模式）
+        if (sug.isEmpty() && prefix.isEmpty() && !cur.required) {
+            for (int j = idx + 1; j < params.size(); j++) {
+                if (params.get(j).required) break; // 不能跳过必填
+                List<Suggestion> cand = suggestFor(params.get(j), prefix, consumedItemId);
+                if (!cand.isEmpty()) {
+                    curIdx = j;
+                    cur = params.get(j);
+                    sug = cand;
+                    break;
+                }
+            }
+        }
         return new Result(sug, cur.name,
                 errors.isEmpty() ? Collections.emptyList() : errors, prefix);
+    }
+
+    /** 统计无空格坐标串里包含的坐标个数（~13~13~13=3，~~~=3，~5=1，5=1）；非法返回 0。 */
+    private static int fusedCoords(String token) {
+        int n = 0;
+        int i = 0;
+        int L = token.length();
+        while (i < L) {
+            boolean marker = false;
+            char c = token.charAt(i);
+            if (c == '~' || c == '^') {
+                marker = true;
+                i++;
+            } else if (c == '+' || c == '-' || c == '.' || Character.isDigit(c)) {
+                // 绝对坐标，无前缀
+            } else {
+                return 0;
+            }
+            if (i < L && (token.charAt(i) == '+' || token.charAt(i) == '-')) {
+                i++;
+            }
+            boolean dig = false;
+            while (i < L) {
+                char d = token.charAt(i);
+                if (Character.isDigit(d) || d == '.') {
+                    dig = true;
+                    i++;
+                } else {
+                    break;
+                }
+            }
+            if (!marker && !dig) {
+                return 0; // 如 "-" / "." 等无意义输入
+            }
+            n++;
+        }
+        return n;
     }
 
     /** execute 链：as/at/... 组合后 run <命令>；run 之后递归交给任意命令补全。 */
@@ -379,7 +438,7 @@ public final class CommandCompleter {
             case "float":
                 return FLOAT.matcher(token).matches();
             case "coordinate":
-                return COORD.matcher(token).matches();
+                return fusedCoords(token) >= 1;
             case "item":
             case "block":
             case "player":
@@ -398,8 +457,6 @@ public final class CommandCompleter {
 
     private static final Pattern INT = Pattern.compile("[+-]?\\d+");
     private static final Pattern FLOAT = Pattern.compile("[+-]?(\\d+\\.?\\d*|\\.\\d+)");
-    private static final Pattern COORD =
-            Pattern.compile("[~^]?([+-]?(\\d+\\.?\\d*|\\.\\d+))?");
 
     // ---- execute 链（Bedrock）----
     private static final List<String> EXEC_SUBCOMMANDS =
