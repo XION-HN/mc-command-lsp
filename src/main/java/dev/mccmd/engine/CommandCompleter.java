@@ -382,6 +382,22 @@ public final class CommandCompleter {
         if (bracket >= 0) {
             String head = prefix.substring(0, bracket + 1);
             String inside = prefix.substring(bracket + 1);
+            int eq = inside.indexOf('=');
+            if (eq >= 0) {
+                // 正在输入某键的值：gamemode=/type= 等给候选
+                String key = inside.substring(0, eq).trim();
+                String valPrefix = inside.substring(eq + 1);
+                for (String cand : selectorValueCandidates(key)) {
+                    String full = head + key + "=" + cand;
+                    if (full.toLowerCase().startsWith(lower)) {
+                        out.add(new Suggestion(full, cand, "选择器值", "value"));
+                    }
+                }
+                if (valPrefix.length() > 0) {
+                    out.add(new Suggestion(head + "]", "]", "结束参数", "selector"));
+                }
+                return out;
+            }
             for (String key : SELECTOR_KEYS) {
                 String full = head + key;
                 if (full.toLowerCase().startsWith(lower)) {
@@ -400,6 +416,34 @@ public final class CommandCompleter {
         }
         return out;
     }
+
+    /** 常见选择器键的取值候选（type=/gamemode=/scores=...）。 */
+    private static java.util.List<String> selectorValueCandidates(String key) {
+        switch (key.toLowerCase()) {
+            case "type":
+            case "family":
+                return ENTITY_IDS;
+            case "gamemode":
+            case "m":
+                return java.util.List.of("survival", "creative", "adventure",
+                        "0", "1", "2");
+            case "scores":
+                return java.util.List.of("{");
+            case "tag":
+            case "name":
+                return java.util.List.of();
+            default:
+                return java.util.List.of(); // 数值型自由输入
+        }
+    }
+
+    private static final java.util.List<String> ENTITY_IDS =
+            java.util.List.of("armor_stand", "arrow", "chicken", "cow", "pig", "sheep",
+                    "zombie", "skeleton", "creeper", "enderman", "spider", "wolf",
+                    "villager_v2", "wither_skeleton", "stray", "husk", "drowned",
+                    "phantom", "shulker", "guardian", "elder_guardian", "slime",
+                    "magma_cube", "blaze", "ghast", "wither", "ender_dragon", "item",
+                    "tnt", "minecart", "boat", "item_frame", "allay", "goat", "warden");
 
     private static boolean isDataTypeName(String name) {
         if (name == null) return false;

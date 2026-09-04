@@ -119,6 +119,16 @@ public class CommandCompleterTest {
     }
 
     @Test
+    public void selectorBracket_valueCompletion() {
+        Result r = cc.complete("/give @a[gamemode=crea", "1.21.60");
+        assertTrue(r.suggestions.stream()
+                .anyMatch(s -> "@a[gamemode=creative".equals(s.insertText)));
+        Result t = cc.complete("/give @a[type=zom", "1.21.60");
+        assertTrue(t.suggestions.stream()
+                .anyMatch(s -> "@a[type=zombie".equals(s.insertText)));
+    }
+
+    @Test
     public void setblock_compactOffsetCoords_thenDataThenMode() {
         Result r = cc.complete("/setblock ~13~13~13 wool 1 des", "1.21.60");
         assertEquals("模式", r.currentParam);
