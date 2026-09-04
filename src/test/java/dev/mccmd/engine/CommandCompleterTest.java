@@ -15,7 +15,7 @@ public class CommandCompleterTest {
 
     @BeforeClass
     public static void load() throws Exception {
-        CommandIndex commands = new CommandIndex("data/commands.json");
+        CommandIndex commands = new CommandIndex("data/commands.json", "data/grammar_extra.json");
         ItemIndex items = new ItemIndex("data/items.json");
         cc = new CommandCompleter(commands, items);
     }
@@ -91,5 +91,26 @@ public class CommandCompleterTest {
                 r2.suggestions.stream().anyMatch(s -> "give".equals(s.insertText)));
         Result r3 = cc.complete("/execute as @a run give @p wool ", "1.21.60");
         assertEquals("数量", r3.currentParam);
+    }
+
+    @Test
+    public void setblock_coordinatesAndModeEnum() {
+        Result r = cc.complete("/setblock ~ ~ ~ wool 1 des", "1.21.60");
+        assertEquals("模式", r.currentParam);
+        assertTrue(r.suggestions.stream().anyMatch(s -> "destroy".equals(s.insertText)));
+        assertTrue(r.errors.isEmpty());
+    }
+
+    @Test
+    public void time_queryEnum() {
+        Result r = cc.complete("/time que", "1.21.60");
+        assertEquals("操作", r.currentParam);
+        assertTrue(r.suggestions.stream().anyMatch(s -> "query".equals(s.insertText)));
+    }
+
+    @Test
+    public void effect_clear_thenOptionalEffect() {
+        Result r = cc.complete("/effect clear @p ", "1.21.60");
+        assertEquals("效果", r.currentParam);
     }
 }

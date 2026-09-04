@@ -1,0 +1,141 @@
+{
+  "commands": {
+    "setblock": {
+      "name": "setblock",
+      "description_cn": "在指定位置放置方块",
+      "description_en": "Set a block at a position",
+      "overloads": [
+        { "versions": ["1.16.220"], "params": [
+          { "name": "x", "type": "coordinate", "required": true },
+          { "name": "y", "type": "coordinate", "required": true },
+          { "name": "z", "type": "coordinate", "required": true },
+          { "name": "方块", "type": "block", "required": true },
+          { "name": "数据值", "type": "int", "required": false },
+          { "name": "模式", "type": "enum", "values": ["destroy", "keep", "replace"], "required": false }
+        ] },
+        { "versions": ["1.21.60"], "params": [
+          { "name": "x", "type": "coordinate", "required": true },
+          { "name": "y", "type": "coordinate", "required": true },
+          { "name": "z", "type": "coordinate", "required": true },
+          { "name": "方块", "type": "block", "required": true },
+          { "name": "数据值", "type": "int", "required": false },
+          { "name": "模式", "type": "enum", "values": ["destroy", "keep", "replace"], "required": false }
+        ] }
+      ]
+    },
+    "fill": {
+      "name": "fill",
+      "description_cn": "用方块填充区域",
+      "description_en": "Fill a region with blocks",
+      "overloads": [
+        { "versions": "*", "params": [
+          { "name": "x1", "type": "coordinate", "required": true },
+          { "name": "y1", "type": "coordinate", "required": true },
+          { "name": "z1", "type": "coordinate", "required": true },
+          { "name": "x2", "type": "coordinate", "required": true },
+          { "name": "y2", "type": "coordinate", "required": true },
+          { "name": "z2", "type": "coordinate", "required": true },
+          { "name": "方块", "type": "block", "required": true },
+          { "name": "数据值", "type": "int", "required": false },
+          { "name": "模式", "type": "enum", "values": ["destroy", "hollow", "keep", "outline", "replace"], "required": false },
+          { "name": "替换方块", "type": "block", "required": false }
+        ] }
+      ]
+    },
+    "time": {
+      "name": "time",
+      "description_cn": "查询/设置/增减世界时间",
+      "description_en": "Query, set or add world time",
+      "overloads": [
+        { "versions": "*", "params": [
+          { "name": "操作", "type": "enum", "values": ["add", "set"], "required": true },
+          { "name": "时间", "type": "int", "required": true, "description_cn": "tick 数或 day/noon/night" }
+        ] },
+        { "versions": "*", "params": [
+          { "name": "操作", "type": "enum", "values": ["query"], "required": true }
+        ] }
+      ]
+    },
+    "effect": {
+      "name": "effect",
+      "description_cn": "给予/清除状态效果",
+      "description_en": "Add or remove status effects",
+      "overloads": [
+        { "versions": "*", "params": [
+          { "name": "子命令", "type": "enum", "values": ["give"], "required": true },
+          { "name": "目标", "type": "player", "required": true },
+          { "name": "效果", "type": "string", "required": true, "description_cn": "如 speed/strength/regeneration" },
+          { "name": "秒数", "type": "int", "required": false },
+          { "name": "强度", "type": "int", "required": false }
+        ] },
+        { "versions": "*", "params": [
+          { "name": "子命令", "type": "enum", "values": ["clear"], "required": true },
+          { "name": "目标", "type": "player", "required": true },
+          { "name": "效果", "type": "string", "required": false }
+        ] }
+      ]
+    },
+    "tp": {
+      "name": "tp",
+      "description_cn": "传送实体",
+      "description_en": "Teleport entities",
+      "overloads": [
+        { "versions": "*", "params": [
+          { "name": "目标", "type": "player", "required": true }
+        ] },
+        { "versions": "*", "params": [
+          { "name": "目标", "type": "player", "required": true },
+          { "name": "x", "type": "coordinate", "required": true },
+          { "name": "y", "type": "coordinate", "required": true },
+          { "name": "z", "type": "coordinate", "required": true }
+        ] },
+        { "versions": "*", "params": [
+          { "name": "来源", "type": "player", "required": true },
+          { "name": "目标", "type": "player", "required": true }
+        ] }
+      ]
+    },
+    "summon": {
+      "name": "summon",
+      "description_cn": "在指定位置生成实体",
+      "description_en": "Summon an entity",
+      "overloads": [
+        { "versions": "*", "params": [
+          { "name": "实体", "type": "string", "required": true, "description_cn": "实体 id，如 zombie/cow" },
+          { "name": "x", "type": "coordinate", "required": false },
+          { "name": "y", "type": "coordinate", "required": false },
+          { "name": "z", "type": "coordinate", "required": false },
+          { "name": "生成事件", "type": "string", "required": false },
+          { "name": "命名", "type": "string", "required": false }
+        ] }
+      ]
+    },
+    "title": {
+      "name": "title",
+      "description_cn": "显示标题文本",
+      "description_en": "Show titles",
+      "overloads": [
+        { "versions": "*", "params": [
+          { "name": "目标", "type": "player", "required": true },
+          { "name": "动作", "type": "enum", "values": ["clear", "reset"], "required": true }
+        ] },
+        { "versions": "*", "params": [
+          { "name": "目标", "type": "player", "required": true },
+          { "name": "动作", "type": "enum", "values": ["title", "subtitle", "actionbar"], "required": true },
+          { "name": "文本", "type": "string", "required": true }
+        ] }
+      ]
+    },
+    "weather": {
+      "name": "weather",
+      "description_cn": "设置天气",
+      "description_en": "Set the weather",
+      "overloads": [
+        { "versions": "*", "params": [
+          { "name": "天气", "type": "enum", "values": ["clear", "rain", "thunder"], "required": true },
+          { "name": "持续时间", "type": "int", "required": false }
+        ] }
+      ]
+    }
+  }
+}

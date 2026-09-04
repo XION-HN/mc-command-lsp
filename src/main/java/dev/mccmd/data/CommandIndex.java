@@ -21,6 +21,26 @@ public final class CommandIndex {
         this(JsonFiles.readObject(jsonPath));
     }
 
+    /** 加载主文件后再用额外文件里的命令覆盖（额外条目以 overloads 新格式编写）。 */
+    public CommandIndex(String jsonPath, String extraPath) throws java.io.IOException {
+        this(JsonFiles.readObject(jsonPath));
+        this.mergeOverrides(JsonFiles.readObject(extraPath));
+    }
+
+    private void mergeOverrides(JSONObject overRoot) {
+        JSONObject cmds = overRoot.optJSONObject("commands");
+        if (cmds == null) return;
+        for (String name : cmds.keySet()) {
+            JSONObject o = cmds.optJSONObject(name);
+            if (o != null) commands.put(name, parseCommand(name, o));
+        }
+    }
+
+    /** 用另一份索引的命令覆盖同名条目（额外语法包）。 */
+    public void merge(CommandIndex over) {
+        if (over != null) commands.putAll(over.commands());
+    }
+
     public CommandIndex(JSONObject root) {
         this.defaultVersion = root.optString("defaultVersion", "");
         Map<String, CommandDef> map = new LinkedHashMap<>();
@@ -35,11 +55,32 @@ public final class CommandIndex {
     }
 
     private static CommandDef parseCommand(String name, JSONObject o) {
+        // 新版格式：overloads: [{versions:[...], params:[...]}, ...] 按版本选取；
+        // 兼容旧式 params: {version:[...]}
         Map<String, List<ParamDef>> paramsByVersion = new LinkedHashMap<>();
-        JSONObject params = o.optJSONObject("params");
-        if (params != null) {
-            for (String ver : params.keySet()) {
-                paramsByVersion.put(ver, parseParams(params.optJSONArray(ver)));
+        JSONArray overloads = o.optJSONArray("overloads");
+        if (overloads != null && overloads.length() > 0) {
+            for (int i = 0; i < overloads.length(); i++) {
+                JSONObject ov = overloads.optJSONObject(i);
+                if (ov == null) continue;
+                List<ParamDef> ps = parseParams(ov.optJSONArray("params"));
+                if (ps.isEmpty()) continue;
+                JSONArray vers = ov.optJSONArray("versions");
+                if (vers == null || vers.length() == 0) {
+                    // 全版本适用（作为兜底，见 paramsForVersion）
+                    paramsByVersion.put("*", ps);
+                } else {
+                    for (int v = 0; v < vers.length(); v++) {
+                        paramsByVersion.put(vers.optString(v), ps);
+                    }
+                }
+            }
+        } else {
+            JSONObject params = o.optJSONObject("params");
+            if (params != null) {
+                for (String ver : params.keySet()) {
+                    paramsByVersion.put(ver, parseParams(params.optJSONArray(ver)));
+                }
             }
         }
         return new CommandDef(
@@ -89,6 +130,8 @@ public final class CommandIndex {
         if (def == null) return null;
         List<ParamDef> exact = def.paramsByVersion.get(version);
         if (exact != null) return exact;
+        List<ParamDef> any = def.paramsByVersion.get("*"); // 全版本签名
+        if (any != null) return any;
         return def.paramsByVersion.getOrDefault(defaultVersion, null);
     }
 }

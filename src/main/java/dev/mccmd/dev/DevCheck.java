@@ -14,8 +14,9 @@ public final class DevCheck {
     public static void main(String[] args) throws IOException {
         String cmdPath = args.length > 0 ? args[0] : "data/commands.json";
         String itemPath = args.length > 1 ? args[1] : "data/items.json";
+        String extraPath = args.length > 2 ? args[2] : "data/grammar_extra.json";
 
-        CommandIndex commands = new CommandIndex(cmdPath);
+        CommandIndex commands = new CommandIndex(cmdPath, extraPath);
         ItemIndex items = new ItemIndex(itemPath);
 
         System.out.println("commands.json: defaultVersion=" + commands.defaultVersion()

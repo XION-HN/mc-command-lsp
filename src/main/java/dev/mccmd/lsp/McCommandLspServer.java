@@ -58,13 +58,14 @@ public final class McCommandLspServer {
 
     public static void main(String[] args) throws Exception {
         // 用法:
-        //   stdio: mc-command-lsp <commands.json> <items.json>
-        //   tcp:   mc-command-lsp --tcp <port> <commands.json> <items.json>
+        //   stdio: mc-command-lsp <commands.json> <items.json> [grammar_extra.json]
+        //   tcp:   mc-command-lsp --tcp <port> <commands.json> <items.json> [grammar_extra.json]
         if (args.length >= 1 && "--tcp".equals(args[0])) {
             int port = Integer.parseInt(args[1]);
             String cmds = args[2];
             String items = args[3];
-            CommandIndex c = new CommandIndex(cmds);
+            String extra = args.length > 4 ? args[4] : "data/grammar_extra.json";
+            CommandIndex c = new CommandIndex(cmds, extra);
             ItemIndex i = new ItemIndex(items);
             try (java.net.ServerSocket ss = new java.net.ServerSocket(port)) {
                 System.err.println("mc-command-lsp listening on :" + port);
@@ -89,7 +90,8 @@ public final class McCommandLspServer {
         } else {
             String cmds = args.length > 0 ? args[0] : "data/commands.json";
             String items = args.length > 1 ? args[1] : "data/items.json";
-            new McCommandLspServer(cmds, items).loop();
+            String extra = args.length > 2 ? args[2] : "data/grammar_extra.json";
+            new McCommandLspServer(new CommandIndex(cmds, extra), new ItemIndex(items)).loop();
         }
     }
 

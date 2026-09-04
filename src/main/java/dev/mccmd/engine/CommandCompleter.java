@@ -255,18 +255,11 @@ public final class CommandCompleter {
                 return out;
             }
             case "item": {
-                for (ItemDef it : items.items()) {
-                    boolean hit = it.id.toLowerCase().startsWith(lower);
-                    if (!hit) {
-                        String cn = it.nameCn != null ? it.nameCn.toLowerCase() : "";
-                        String en = it.nameEn != null ? it.nameEn.toLowerCase() : "";
-                        hit = (lower.length() > 0)
-                                && (cn.contains(lower) || en.contains(lower));
-                    }
-                    if (!hit) continue;
-                    String cn = it.nameCn != null && !it.nameCn.isEmpty() ? it.nameCn : it.nameEn;
-                    out.add(new Suggestion(it.id, it.id, cn, "item"));
-                }
+                out.addAll(itemSuggestions(prefix, false));
+                return out;
+            }
+            case "block": {
+                out.addAll(itemSuggestions(prefix, true));
                 return out;
             }
             default:
@@ -301,6 +294,25 @@ public final class CommandCompleter {
             }
         }
         return out; // int/float/string/json 等：自由输入，无静态候选
+    }
+
+    /** 物品/方块候选：id 前缀或中/英文名包含；onlyBlock=true 仅方块。 */
+    private List<Suggestion> itemSuggestions(String prefix, boolean onlyBlock) {
+        String lower = prefix.toLowerCase();
+        List<Suggestion> out = new ArrayList<>();
+        for (ItemDef it : items.items()) {
+            if (onlyBlock && !it.isBlock) continue;
+            boolean hit = it.id.toLowerCase().startsWith(lower);
+            if (!hit && lower.length() > 0) {
+                String cn = it.nameCn != null ? it.nameCn.toLowerCase() : "";
+                String en = it.nameEn != null ? it.nameEn.toLowerCase() : "";
+                hit = cn.contains(lower) || en.contains(lower);
+            }
+            if (!hit) continue;
+            String cn = it.nameCn != null && !it.nameCn.isEmpty() ? it.nameCn : it.nameEn;
+            out.add(new Suggestion(it.id, it.id, cn, "item"));
+        }
+        return out;
     }
 
     /** 选择器目标补全：@a..@s，进入 [ 后补参数键(name=/type=...)并可结束 ]。 */
@@ -366,6 +378,8 @@ public final class CommandCompleter {
                 return INT.matcher(token).matches();
             case "float":
                 return FLOAT.matcher(token).matches();
+            case "coordinate":
+                return COORD.matcher(token).matches();
             case "item":
             case "block":
             case "player":
@@ -375,6 +389,7 @@ public final class CommandCompleter {
             case "command":
             case "json":
             case "nbt":
+            case "effect":
             default:
                 // 自由文本 / 由候选驱动：只要不包含空格即可
                 return !token.contains(" ");
@@ -383,6 +398,8 @@ public final class CommandCompleter {
 
     private static final Pattern INT = Pattern.compile("[+-]?\\d+");
     private static final Pattern FLOAT = Pattern.compile("[+-]?(\\d+\\.?\\d*|\\.\\d+)");
+    private static final Pattern COORD =
+            Pattern.compile("[~^]?([+-]?(\\d+\\.?\\d*|\\.\\d+))?");
 
     // ---- execute 链（Bedrock）----
     private static final List<String> EXEC_SUBCOMMANDS =
