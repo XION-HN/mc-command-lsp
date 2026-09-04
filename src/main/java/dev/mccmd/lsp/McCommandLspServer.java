@@ -170,7 +170,7 @@ public final class McCommandLspServer {
     private JSONObject initializeResult() {
         JSONObject sync = new JSONObject().put("openClose", true).put("change", 1);
         JSONObject completion = new JSONObject()
-                .put("triggerCharacters", new JSONArray().put("/").put(" ").put("[").put("="))
+                .put("triggerCharacters", new JSONArray().put("/").put(" ").put("[").put("=").put("@"))
                 .put("resolveProvider", false);
         JSONObject caps = new JSONObject()
                 .put("textDocumentSync", sync)

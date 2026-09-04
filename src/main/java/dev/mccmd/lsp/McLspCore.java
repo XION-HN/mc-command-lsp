@@ -54,7 +54,7 @@ public final class McLspCore {
     public static JSONObject capabilities() {
         JSONObject sync = new JSONObject().put("openClose", true).put("change", 1);
         JSONObject completion = new JSONObject()
-                .put("triggerCharacters", new JSONArray().put("/").put(" ").put("[").put("="))
+                .put("triggerCharacters", new JSONArray().put("/").put(" ").put("[").put("=").put("@"))
                 .put("resolveProvider", false);
         return new JSONObject()
                 .put("textDocumentSync", sync)
