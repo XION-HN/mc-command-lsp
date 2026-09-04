@@ -106,6 +106,9 @@ public final class CommandCompleter {
             // 命令名刚好输完（无参数输入）
             return new Result(Collections.emptyList(), null, Collections.emptyList(), cmd);
         }
+        if ("execute".equals(def.name)) {
+            return completeExecute(def, rest, version);
+        }
         return completeParams(def, rest, version);
     }
 
@@ -165,25 +168,104 @@ public final class CommandCompleter {
                 errors.isEmpty() ? Collections.emptyList() : errors, prefix);
     }
 
+    /** execute 链：as/at/... 组合后 run <命令>；run 之后递归交给任意命令补全。 */
+    private Result completeExecute(CommandDef def, String rest, String version) {
+        boolean trailing = rest.endsWith(" ");
+        String body = trailing ? rest.substring(0, rest.length() - 1) : rest;
+        List<String> done = new ArrayList<>();
+        String prefix = "";
+        if (!body.isEmpty()) {
+            List<String> all = splitTokens(body);
+            if (trailing) {
+                done = all;
+            } else {
+                prefix = all.get(all.size() - 1);
+                done = all.subList(0, all.size() - 1);
+            }
+        }
+
+        // 定位 run（在已完整输入的 token 中）
+        int runIdx = -1;
+        for (int i = 0; i < done.size(); i++) {
+            if ("run".equals(done.get(i))) {
+                runIdx = i;
+                break;
+            }
+        }
+        if (runIdx >= 0) {
+            // run 之后的内容交给嵌套命令补全
+            StringBuilder nested = new StringBuilder();
+            for (int i = runIdx + 1; i < done.size(); i++) {
+                if (nested.length() > 0) nested.append(' ');
+                nested.append(done.get(i));
+            }
+            if (trailing || !prefix.isEmpty()) {
+                if (nested.length() > 0) nested.append(' ');
+                nested.append(prefix);
+                if (trailing) nested.append(' ');
+            }
+            return complete(nested.toString(), version);
+        }
+
+        // 尚未输入 run：判断当前停在“子命令槽”还是“某子命令的参数槽”
+        String lastSub = null;
+        for (String t : done) {
+            if (EXEC_SUBCOMMANDS.contains(t)) {
+                lastSub = t;
+            } else {
+                lastSub = null; // 这个 token 是上一个子命令的参数
+            }
+        }
+        if ("run".equals(lastSub)) lastSub = null;
+
+        List<Suggestion> sug = new ArrayList<>();
+        String slotName;
+        if (lastSub == null) {
+            // 期待下一个子命令
+            slotName = "子命令";
+            for (String s : EXEC_SUBCOMMANDS) {
+                if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
+                    sug.add(new Suggestion(s, s, "execute 子命令", "command"));
+                }
+            }
+        } else {
+            // 期待该子命令的参数（也允许继续输入子命令，容错）
+            slotName = lastSub;
+            if (EXEC_SELECTOR_SUBS.contains(lastSub)) {
+                sug.addAll(selectorSuggestions(prefix));
+            }
+            for (String s : EXEC_SUBCOMMANDS) {
+                if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
+                    sug.add(new Suggestion(s, s, "execute 子命令", "command"));
+                }
+            }
+        }
+        return new Result(sug, slotName, Collections.emptyList(), prefix);
+    }
+
     /** 生成当前参数的候选。 */
     private List<Suggestion> suggestFor(ParamDef p, String prefix, String consumedItemId) {
         String lower = prefix.toLowerCase();
         List<Suggestion> out = new ArrayList<>();
         switch (p.type) {
-            case "selector": {
-                for (String s : List.of("@a", "@p", "@e", "@r", "@s")) {
-                    if (s.toLowerCase().startsWith(lower)) {
-                        out.add(new Suggestion(s, s, "选择器", "selector"));
-                    }
-                }
+            case "selector":
+            case "player":
+            case "entity": {
+                out.addAll(selectorSuggestions(prefix));
                 return out;
             }
             case "item": {
                 for (ItemDef it : items.items()) {
-                    if (it.id.toLowerCase().startsWith(lower)) {
-                        String cn = it.nameCn != null && !it.nameCn.isEmpty() ? it.nameCn : it.nameEn;
-                        out.add(new Suggestion(it.id, it.id, cn, "item"));
+                    boolean hit = it.id.toLowerCase().startsWith(lower);
+                    if (!hit) {
+                        String cn = it.nameCn != null ? it.nameCn.toLowerCase() : "";
+                        String en = it.nameEn != null ? it.nameEn.toLowerCase() : "";
+                        hit = (lower.length() > 0)
+                                && (cn.contains(lower) || en.contains(lower));
                     }
+                    if (!hit) continue;
+                    String cn = it.nameCn != null && !it.nameCn.isEmpty() ? it.nameCn : it.nameEn;
+                    out.add(new Suggestion(it.id, it.id, cn, "item"));
                 }
                 return out;
             }
@@ -219,6 +301,33 @@ public final class CommandCompleter {
             }
         }
         return out; // int/float/string/json 等：自由输入，无静态候选
+    }
+
+    /** 选择器目标补全：@a..@s，进入 [ 后补参数键(name=/type=...)并可结束 ]。 */
+    private List<Suggestion> selectorSuggestions(String prefix) {
+        String lower = prefix.toLowerCase();
+        List<Suggestion> out = new ArrayList<>();
+        int bracket = prefix.indexOf('[');
+        if (bracket >= 0) {
+            String head = prefix.substring(0, bracket + 1);
+            String inside = prefix.substring(bracket + 1);
+            for (String key : SELECTOR_KEYS) {
+                String full = head + key;
+                if (full.toLowerCase().startsWith(lower)) {
+                    out.add(new Suggestion(full, key, "选择器参数", "selector"));
+                }
+            }
+            if (!inside.isEmpty()) {
+                out.add(new Suggestion(head + "]", "]", "结束参数", "selector"));
+            }
+            return out;
+        }
+        for (String s : List.of("@a", "@p", "@e", "@r", "@s")) {
+            if (s.toLowerCase().startsWith(lower)) {
+                out.add(new Suggestion(s, s, "选择器", "selector"));
+            }
+        }
+        return out;
     }
 
     private static boolean isDataTypeName(String name) {
@@ -274,4 +383,16 @@ public final class CommandCompleter {
 
     private static final Pattern INT = Pattern.compile("[+-]?\\d+");
     private static final Pattern FLOAT = Pattern.compile("[+-]?(\\d+\\.?\\d*|\\.\\d+)");
+
+    // ---- execute 链（Bedrock）----
+    private static final List<String> EXEC_SUBCOMMANDS =
+            List.of("as", "at", "positioned", "rotated", "facing", "anchored", "align",
+                    "if", "unless", "store", "run");
+    /** 需要紧跟一个实体/选择器参数的 execute 子命令。 */
+    private static final List<String> EXEC_SELECTOR_SUBS = List.of("as", "at");
+    /** 选择器内部参数键（name=,type=,tag=...）。 */
+    private static final List<String> SELECTOR_KEYS = List.of(
+            "name=", "type=", "tag=", "family=", "x=", "y=", "z=",
+            "dx=", "dy=", "dz=", "r=", "rm=", "l=", "lm=", "c=", "m=",
+            "scores=", "gamemode=");
 }

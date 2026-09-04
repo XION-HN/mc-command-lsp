@@ -55,6 +55,41 @@ public class CommandCompleterTest {
         Result r = cc.complete("/give @p dia", "1.21.60");
         assertEquals("物品", r.currentParam);
         assertTrue(r.suggestions.stream().anyMatch(s -> "diamond".equals(s.insertText)));
-        assertTrue(r.suggestions.stream().allMatch(s -> s.insertText.startsWith("dia")));
+        // 模糊匹配允许含中文/英文名命中的项，但主命中仍是 dia 前缀
+        assertTrue(r.suggestions.stream().anyMatch(s -> s.insertText.startsWith("dia")));
+    }
+
+    @Test
+    public void itemParam_matchesChineseName() {
+        Result r = cc.complete("/give @p 钻", "1.21.60");
+        assertTrue("应按中文名匹配到钻石",
+                r.suggestions.stream().anyMatch(s -> "diamond".equals(s.insertText)));
+    }
+
+    @Test
+    public void playerParam_suggestsSelectors() {
+        Result r = cc.complete("/give @", "1.21.60");
+        assertEquals("玩家", r.currentParam);
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@a".equals(s.insertText)));
+    }
+
+    @Test
+    public void selectorBracket_suggestsKeys() {
+        Result r = cc.complete("/give @a[n", "1.21.60");
+        assertTrue("选择器括号内应补 name=/tag= 等键",
+                r.suggestions.stream().anyMatch(s -> s.insertText.endsWith("name=")));
+        assertTrue(r.suggestions.stream().anyMatch(s -> s.insertText.contains("@a[")));
+    }
+
+    @Test
+    public void execute_run_suggestsSubAndNestedCommand() {
+        Result r1 = cc.complete("/execute as @a ru", "1.21.60");
+        assertTrue("未到 run 前应给 run 子命令候选",
+                r1.suggestions.stream().anyMatch(s -> "run".equals(s.insertText)));
+        Result r2 = cc.complete("/execute as @a run giv", "1.21.60");
+        assertTrue("run 后递归补命令名",
+                r2.suggestions.stream().anyMatch(s -> "give".equals(s.insertText)));
+        Result r3 = cc.complete("/execute as @a run give @p wool ", "1.21.60");
+        assertEquals("数量", r3.currentParam);
     }
 }
