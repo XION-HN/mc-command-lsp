@@ -129,6 +129,17 @@ def main():
 
     grammar = {'name': 'Minecraft Function', 'scopeName': 'source.mcfunction',
                'patterns': patterns}
+
+    # start/end 块 → begin/end（含叶子子规则放 contains）
+    SE = re.compile(
+        r'\{start:\{match:/([^{}]*)/\}\}?end:\{match:/([^{}]*)/\}')
+    for m in SE.finditer(text):
+        begin = res.expand(m.group(1).replace('\\/', '/'), 0)
+        end = res.expand(m.group(2).replace('\\/', '/'), 0)
+        if not begin or not end or 'include(' in begin or 'include(' in end:
+            continue
+        patterns.append({'begin': begin, 'end': end, 'patterns': []})
+
     json.dump(grammar, open(out, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
     print(f'defs={len(defs)} converted={len(patterns)} leaf rules -> {out}')
 
