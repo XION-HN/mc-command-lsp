@@ -1,0 +1,32 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'dev.mccmd'
+version = '0.1.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    api 'org.json:json:20240303'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.named('test') {
+    useJUnit()
+}
+
+tasks.register('devCheck', JavaExec) {
+    group = 'verification'
+    description = '加载 data/*.json 并打印统计（开发自检）'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.mccmd.dev.DevCheck'
+    args = ['data/commands.json', 'data/items.json', 'data/icons.json']
+}

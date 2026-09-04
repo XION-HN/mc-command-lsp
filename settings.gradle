@@ -1,0 +1,5 @@
+pluginManagement {
+    repositories { mavenCentral(); gradlePluginPortal() }
+}
+
+rootProject.name = "mc-command-lsp"

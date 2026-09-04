@@ -1,0 +1,588 @@
+{
+  "$schemaVersion": 1,
+  "game": "minecraft-bedrock",
+  "defaultVersion": "1.21.60",
+  "versionAliases": { "old": "1.16.220", "new": "1.21.60" },
+  "data_meta": {
+    "generatedDate": "2026-09-05",
+    "source": "minecraft.wiki Commands pages",
+    "note": "命令语法基于 minecraft.wiki 各命令页的 Bedrock Edition 语法节。旧版 1.16.220 以数字数据值(tileData/data)为主；新版 1.21.60 以 block states / item components 为主。execute 在 1.19+ 重构为子命令链。"
+  },
+  "commands": {
+    "give": {
+      "name": "give",
+      "category": "item",
+      "description_cn": "给予玩家物品",
+      "description_en": "Give items to a player",
+      "url": "https://minecraft.wiki/w/Commands/give",
+      "params": {
+        "1.16.220": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "物品", "type": "item", "required": true },
+          { "name": "数量", "type": "int", "required": false },
+          { "name": "数据值", "type": "int", "required": false, "description_cn": "旧版数字数据值，如羊毛颜色 0-15" }
+        ],
+        "1.21.60": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "物品", "type": "item", "required": true },
+          { "name": "数量", "type": "int", "required": false },
+          { "name": "数据值", "type": "int", "required": false, "description_cn": "兼容旧版数字数据值（仍可用）" },
+          { "name": "组件", "type": "json", "required": false, "description_cn": "物品组件 JSON，如 {\"minecraft:can_place_on\":{\"blocks\":[\"dirt\"]}}" }
+        ]
+      }
+    },
+    "execute": {
+      "name": "execute",
+      "category": "world",
+      "description_cn": "在改变执行者/位置/维度/条件后执行另一条命令",
+      "description_en": "Executes another command with modified context",
+      "url": "https://minecraft.wiki/w/Commands/execute",
+      "params": {
+        "1.16.220": [
+          { "name": "执行者", "type": "selector", "required": true, "description_cn": "目标选择器，如 @a @e[type=zombie]" },
+          { "name": "坐标", "type": "position", "required": true, "description_cn": "执行位置 x y z，支持 ~ ~ ~" },
+          { "name": "命令", "type": "command", "required": true, "description_cn": "要执行的子命令（不含 /）" }
+        ],
+        "1.21.60": [
+          { "name": "子命令", "type": "string", "required": true, "values": ["align","anchored","as","at","facing","in","positioned","rotated","if","unless","run"], "description_cn": "execute 子命令链首节点，可链式拼接多个，最终以 run 结尾" },
+          { "name": "参数", "type": "string", "required": false, "repeat": true, "description_cn": "各子命令的参数，如 as @p / at @s / if block ~ ~ ~ stone / run say hi" }
+        ]
+      }
+    },
+    "setblock": {
+      "name": "setblock",
+      "category": "world",
+      "description_cn": "将指定位置的方块替换为另一种方块",
+      "description_en": "Changes a block to another block",
+      "url": "https://minecraft.wiki/w/Commands/setblock",
+      "params": {
+        "1.16.220": [
+          { "name": "坐标", "type": "position", "required": true },
+          { "name": "方块", "type": "block", "required": true },
+          { "name": "数据值", "type": "int", "required": false, "description_cn": "旧版方块数据值 tileData" },
+          { "name": "处理方式", "type": "string", "required": false, "values": ["destroy","keep","replace"], "description_cn": "destroy 掉落原方块/keep 仅替换空气/replace 静默替换（默认）" }
+        ],
+        "1.21.60": [
+          { "name": "坐标", "type": "position", "required": true },
+          { "name": "方块", "type": "block", "required": true },
+          { "name": "方块状态", "type": "json", "required": false, "description_cn": "block states，如 [\"minecraft:cardinal_direction\"=\"east\"]" },
+          { "name": "处理方式", "type": "string", "required": false, "values": ["destroy","keep","replace"], "description_cn": "destroy 掉落原方块/keep 仅替换空气/replace 静默替换（默认）" }
+        ]
+      }
+    },
+    "summon": {
+      "name": "summon",
+      "category": "entity",
+      "description_cn": "召唤一个实体",
+      "description_en": "Summons an entity",
+      "url": "https://minecraft.wiki/w/Commands/summon",
+      "params": {
+        "1.16.220": [
+          { "name": "实体类型", "type": "entity", "required": true },
+          { "name": "坐标", "type": "position", "required": false },
+          { "name": "名称标签", "type": "string", "required": false, "description_cn": "实体自定义名称" }
+        ],
+        "1.21.60": [
+          { "name": "实体类型", "type": "entity", "required": true },
+          { "name": "坐标", "type": "position", "required": false },
+          { "name": "yaw", "type": "float", "required": false, "description_cn": "水平旋转角度" },
+          { "name": "pitch", "type": "float", "required": false, "description_cn": "垂直旋转角度" },
+          { "name": "生成事件", "type": "string", "required": false, "description_cn": "行为包 spawn event，如 minecraft:promote_to_patrol_captain" },
+          { "name": "名称标签", "type": "string", "required": false },
+          { "name": "facing", "type": "string", "required": false, "values": ["facing"], "description_cn": "可选 facing 关键字，后接目标实体或坐标" }
+        ]
+      }
+    },
+    "gamemode": {
+      "name": "gamemode",
+      "category": "player",
+      "description_cn": "设置玩家的游戏模式",
+      "description_en": "Sets a player's game mode",
+      "url": "https://minecraft.wiki/w/Commands/gamemode",
+      "params": {
+        "1.16.220": [
+          { "name": "游戏模式", "type": "gamemode", "required": true, "values": ["survival","s","0","creative","c","1","adventure","a","2","default","d","5"] },
+          { "name": "玩家", "type": "player", "required": false }
+        ],
+        "1.21.60": [
+          { "name": "游戏模式", "type": "gamemode", "required": true, "values": ["survival","s","0","creative","c","1","adventure","a","2","default","d","5","spectator","6"] },
+          { "name": "玩家", "type": "player", "required": false }
+        ]
+      }
+    },
+    "gamerule": {
+      "name": "gamerule",
+      "category": "world",
+      "description_cn": "设置或查询游戏规则",
+      "description_en": "Sets or queries a game rule value",
+      "url": "https://minecraft.wiki/w/Commands/gamerule",
+      "params": {
+        "1.16.220": [
+          { "name": "规则名", "type": "gamerule", "required": true, "values": ["commandBlockOutput","commandBlocksEnabled","doDaylightCycle","doEntityDrops","doFireTick","doInsomnia","doImmediateRespawn","doMobLoot","doMobSpawning","doTileDrops","doWeatherCycle","drowningDamage","fallDamage","fireDamage","keepInventory","maxCommandChainLength","mobGriefing","naturalRegeneration","pvp","randomTickSpeed","sendCommandFeedback","showCoordinates","showDeathMessages","showTags","tntExplodes","spawnRadius","playersSleepingPercentage"] },
+          { "name": "值", "type": "string", "required": false, "description_cn": "布尔规则填 true/false，整数规则填数字" }
+        ],
+        "1.21.60": [
+          { "name": "规则名", "type": "gamerule", "required": true, "values": ["commandBlockOutput","commandBlocksEnabled","doDaylightCycle","doEntityDrops","doFireTick","doInsomnia","doImmediateRespawn","doMobLoot","doMobSpawning","doTileDrops","doWeatherCycle","drowningDamage","fallDamage","fireDamage","freezeDamage","keepInventory","maxCommandChainLength","mobGriefing","naturalRegeneration","pvp","randomTickSpeed","sendCommandFeedback","showCoordinates","showDeathMessages","showTags","tntExplodes","spawnRadius","playersSleepingPercentage","commandModificationBlockLimit","doWardenSpawning","waterSourceConversion","lavaSourceConversion","globalSoundEvents"] },
+          { "name": "值", "type": "string", "required": false, "description_cn": "布尔规则填 true/false，整数规则填数字" }
+        ]
+      }
+    },
+    "tp": {
+      "name": "tp",
+      "category": "entity",
+      "description_cn": "传送实体（teleport 的别名）",
+      "description_en": "Teleports entities (alias of teleport)",
+      "url": "https://minecraft.wiki/w/Commands/teleport",
+      "params": {
+        "1.16.220": [
+          { "name": "目标", "type": "selector", "required": false, "description_cn": "被传送的实体，省略则为执行者" },
+          { "name": "目的地", "type": "position", "required": true, "description_cn": "坐标 x y z 或目标实体名" },
+          { "name": "yaw", "type": "float", "required": false },
+          { "name": "pitch", "type": "float", "required": false },
+          { "name": "检查方块", "type": "string", "required": false, "values": ["true","false"], "description_cn": "checkForBlocks，true 时遇阻挡不传送" }
+        ],
+        "1.21.60": [
+          { "name": "目标", "type": "selector", "required": false, "description_cn": "被传送的实体，省略则为执行者" },
+          { "name": "目的地", "type": "position", "required": true, "description_cn": "坐标 x y z 或目标实体" },
+          { "name": "yaw", "type": "float", "required": false },
+          { "name": "pitch", "type": "float", "required": false },
+          { "name": "facing", "type": "string", "required": false, "values": ["facing"], "description_cn": "可选 facing，后接坐标或实体使目标朝向该处" },
+          { "name": "检查方块", "type": "string", "required": false, "values": ["true","false"], "description_cn": "checkForBlocks" }
+        ]
+      }
+    },
+    "teleport": {
+      "name": "teleport",
+      "category": "entity",
+      "description_cn": "传送实体",
+      "description_en": "Teleports entities",
+      "url": "https://minecraft.wiki/w/Commands/teleport",
+      "params": {
+        "1.16.220": [
+          { "name": "目标", "type": "selector", "required": false },
+          { "name": "目的地", "type": "position", "required": true },
+          { "name": "yaw", "type": "float", "required": false },
+          { "name": "pitch", "type": "float", "required": false },
+          { "name": "检查方块", "type": "string", "required": false, "values": ["true","false"] }
+        ],
+        "1.21.60": [
+          { "name": "目标", "type": "selector", "required": false },
+          { "name": "目的地", "type": "position", "required": true },
+          { "name": "yaw", "type": "float", "required": false },
+          { "name": "pitch", "type": "float", "required": false },
+          { "name": "facing", "type": "string", "required": false, "values": ["facing"] },
+          { "name": "检查方块", "type": "string", "required": false, "values": ["true","false"] }
+        ]
+      }
+    },
+    "fill": {
+      "name": "fill",
+      "category": "world",
+      "description_cn": "用指定方块填充一个区域",
+      "description_en": "Fills a region with a specific block",
+      "url": "https://minecraft.wiki/w/Commands/fill",
+      "params": {
+        "1.16.220": [
+          { "name": "起点", "type": "position", "required": true },
+          { "name": "终点", "type": "position", "required": true },
+          { "name": "方块", "type": "block", "required": true },
+          { "name": "数据值", "type": "int", "required": false, "description_cn": "旧版 tileData" },
+          { "name": "处理方式", "type": "string", "required": false, "values": ["destroy","hollow","keep","outline","replace"], "description_cn": "默认 replace" },
+          { "name": "替换方块", "type": "block", "required": false, "description_cn": "replace 模式下指定仅替换此方块" },
+          { "name": "替换数据值", "type": "int", "required": false, "description_cn": "replace 模式下替换方块的数据值" }
+        ],
+        "1.21.60": [
+          { "name": "起点", "type": "position", "required": true },
+          { "name": "终点", "type": "position", "required": true },
+          { "name": "方块", "type": "block", "required": true },
+          { "name": "方块状态", "type": "json", "required": false, "description_cn": "block states" },
+          { "name": "处理方式", "type": "string", "required": false, "values": ["destroy","hollow","keep","outline","replace"], "description_cn": "默认 replace" },
+          { "name": "替换方块", "type": "block", "required": false, "description_cn": "replace 模式下指定仅替换此方块" },
+          { "name": "替换方块状态", "type": "json", "required": false }
+        ]
+      }
+    },
+    "effect": {
+      "name": "effect",
+      "category": "entity",
+      "description_cn": "给予或清除实体的状态效果",
+      "description_en": "Adds or removes status effects",
+      "url": "https://minecraft.wiki/w/Commands/effect",
+      "params": {
+        "1.16.220": [
+          { "name": "目标", "type": "selector", "required": true },
+          { "name": "效果", "type": "effect", "required": true, "description_cn": "效果 ID，如 speed / strength；填 clear 清除所有效果" },
+          { "name": "时长(秒)", "type": "int", "required": false, "description_cn": "默认 30 秒；填 0 清除该效果" },
+          { "name": "等级", "type": "int", "required": false, "description_cn": "放大器，0=I级，1=II级，最大 255" },
+          { "name": "隐藏粒子", "type": "string", "required": false, "values": ["true","false"] }
+        ],
+        "1.21.60": [
+          { "name": "目标", "type": "selector", "required": true },
+          { "name": "效果", "type": "effect", "required": true, "description_cn": "效果 ID 或 clear；infinite 为无限时长关键字" },
+          { "name": "时长", "type": "string", "required": false, "description_cn": "秒数(int)或 infinite" },
+          { "name": "等级", "type": "int", "required": false },
+          { "name": "隐藏粒子", "type": "string", "required": false, "values": ["true","false"] }
+        ]
+      }
+    },
+    "scoreboard": {
+      "name": "scoreboard",
+      "category": "server",
+      "description_cn": "管理记分板目标、玩家分数与显示",
+      "description_en": "Manages scoreboard objectives, player scores and displays",
+      "url": "https://minecraft.wiki/w/Commands/scoreboard",
+      "params": {
+        "1.16.220": [
+          { "name": "操作", "type": "string", "required": true, "values": ["objectives","players"] },
+          { "name": "子操作", "type": "string", "required": true, "values": ["add","remove","list","setdisplay","reset","set","add","remove","test","operation","random"], "description_cn": "objectives: add/remove/list/setdisplay；players: set/add/remove/reset/test/operation/random" },
+          { "name": "参数", "type": "string", "required": false, "repeat": true, "description_cn": "目标名/准则/显示名/玩家/分数/运算符等" }
+        ],
+        "1.21.60": [
+          { "name": "操作", "type": "string", "required": true, "values": ["objectives","players"] },
+          { "name": "子操作", "type": "string", "required": true, "values": ["add","remove","list","setdisplay","reset","set","add","remove","test","operation","random"], "description_cn": "objectives: add/remove/list/setdisplay；players: set/add/remove/reset/test/operation/random" },
+          { "name": "参数", "type": "string", "required": false, "repeat": true, "description_cn": "目标名/准则(dummy)/显示名/玩家/分数/运算符等" }
+        ]
+      }
+    },
+    "locate": {
+      "name": "locate",
+      "category": "world",
+      "description_cn": "显示最近的结构或生物群系坐标",
+      "description_en": "Displays coordinates of nearest structure or biome",
+      "url": "https://minecraft.wiki/w/Commands/locate",
+      "params": {
+        "1.16.220": [
+          { "name": "结构", "type": "string", "required": true, "values": ["Stronghold","Monument","Mansion","EndCity","Fortress","Mineshaft","Temple","Village","Shipwreck","Buried_Treasure","Ocean_Ruin","Ruined_Portal","Bastion_Remnant","Pillager_Outpost","Ancient_City"], "description_cn": "旧版结构名（大驼峰），仅支持结构定位" }
+        ],
+        "1.21.60": [
+          { "name": "类型", "type": "string", "required": true, "values": ["structure","biome"] },
+          { "name": "目标", "type": "string", "required": true, "description_cn": "structure: ancient_city/bastion_remnant/buried_treasure/end_city/fortress/mansion/mineshaft/monument/ocean_ruin/pillager_outpost/ruined_portal/shipwreck/stronghold/temple/village 等；biome: plains/desert/nether_wastes 等" },
+          { "name": "仅新区块", "type": "string", "required": false, "values": ["true","false"], "description_cn": "structure 模式可选 useNewChunksOnly" }
+        ]
+      }
+    },
+    "clear": {
+      "name": "clear",
+      "category": "player",
+      "description_cn": "清除玩家物品栏中的物品",
+      "description_en": "Clears items from player inventory",
+      "url": "https://minecraft.wiki/w/Commands/clear",
+      "params": {
+        "1.16.220": [
+          { "name": "玩家", "type": "player", "required": false },
+          { "name": "物品", "type": "item", "required": false },
+          { "name": "数据值", "type": "int", "required": false },
+          { "name": "数量", "type": "int", "required": false }
+        ],
+        "1.21.60": [
+          { "name": "玩家", "type": "player", "required": false },
+          { "name": "物品", "type": "item", "required": false },
+          { "name": "数据值", "type": "int", "required": false },
+          { "name": "数量", "type": "int", "required": false }
+        ]
+      }
+    },
+    "kill": {
+      "name": "kill",
+      "category": "entity",
+      "description_cn": "杀死指定实体",
+      "description_en": "Kills specified entities",
+      "url": "https://minecraft.wiki/w/Commands/kill",
+      "params": {
+        "1.16.220": [
+          { "name": "目标", "type": "selector", "required": false, "description_cn": "省略则杀死执行者" }
+        ],
+        "1.21.60": [
+          { "name": "目标", "type": "selector", "required": false }
+        ]
+      }
+    },
+    "say": {
+      "name": "say",
+      "category": "server",
+      "description_cn": "向所有玩家发送消息",
+      "description_en": "Sends a message to all players",
+      "url": "https://minecraft.wiki/w/Commands/say",
+      "params": {
+        "1.16.220": [
+          { "name": "消息", "type": "text", "required": true, "repeat": true }
+        ],
+        "1.21.60": [
+          { "name": "消息", "type": "text", "required": true, "repeat": true }
+        ]
+      }
+    },
+    "tellraw": {
+      "name": "tellraw",
+      "category": "server",
+      "description_cn": "向玩家发送原始 JSON 文本消息",
+      "description_en": "Sends a raw JSON text message to players",
+      "url": "https://minecraft.wiki/w/Commands/tellraw",
+      "params": {
+        "1.16.220": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "原始文本", "type": "rawtext", "required": true, "description_cn": "JSON rawtext 对象，如 {\"rawtext\":[{\"text\":\"hi\"}]}" }
+        ],
+        "1.21.60": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "原始文本", "type": "rawtext", "required": true }
+        ]
+      }
+    },
+    "time": {
+      "name": "time",
+      "category": "world",
+      "description_cn": "查询或修改世界时间",
+      "description_en": "Queries or changes world time",
+      "url": "https://minecraft.wiki/w/Commands/time",
+      "params": {
+        "1.16.220": [
+          { "name": "操作", "type": "string", "required": true, "values": ["add","query","set"] },
+          { "name": "值", "type": "string", "required": true, "description_cn": "add/set: 数字或 day/night/midnight/noon；query: day/daytime/gametime" }
+        ],
+        "1.21.60": [
+          { "name": "操作", "type": "string", "required": true, "values": ["add","query","set"] },
+          { "name": "值", "type": "string", "required": true }
+        ]
+      }
+    },
+    "weather": {
+      "name": "weather",
+      "category": "world",
+      "description_cn": "设置天气",
+      "description_en": "Sets the weather",
+      "url": "https://minecraft.wiki/w/Commands/weather",
+      "params": {
+        "1.16.220": [
+          { "name": "天气", "type": "string", "required": true, "values": ["clear","rain","thunder"] },
+          { "name": "持续时长(秒)", "type": "int", "required": false }
+        ],
+        "1.21.60": [
+          { "name": "天气", "type": "string", "required": true, "values": ["clear","rain","thunder"] },
+          { "name": "持续时长(秒)", "type": "int", "required": false }
+        ]
+      }
+    },
+    "difficulty": {
+      "name": "difficulty",
+      "category": "world",
+      "description_cn": "设置游戏难度",
+      "description_en": "Sets the difficulty level",
+      "url": "https://minecraft.wiki/w/Commands/difficulty",
+      "params": {
+        "1.16.220": [
+          { "name": "难度", "type": "difficulty", "required": true, "values": ["peaceful","p","0","easy","e","1","normal","n","2","hard","h","3"] }
+        ],
+        "1.21.60": [
+          { "name": "难度", "type": "difficulty", "required": true, "values": ["peaceful","p","0","easy","e","1","normal","n","2","hard","h","3"] }
+        ]
+      }
+    },
+    "enchant": {
+      "name": "enchant",
+      "category": "item",
+      "description_cn": "为玩家手持物品附魔",
+      "description_en": "Enchants the item held by a player",
+      "url": "https://minecraft.wiki/w/Commands/enchant",
+      "params": {
+        "1.16.220": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "附魔", "type": "enchant", "required": true, "description_cn": "附魔 ID，如 sharpness/unbreaking" },
+          { "name": "等级", "type": "int", "required": false, "description_cn": "默认 1" }
+        ],
+        "1.21.60": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "附魔", "type": "enchant", "required": true },
+          { "name": "等级", "type": "int", "required": false }
+        ]
+      }
+    },
+    "xp": {
+      "name": "xp",
+      "category": "player",
+      "description_cn": "给予或查询玩家经验",
+      "description_en": "Gives or queries player experience",
+      "url": "https://minecraft.wiki/w/Commands/xp",
+      "params": {
+        "1.16.220": [
+          { "name": "操作", "type": "string", "required": true, "values": ["add","set","query"] },
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "数量", "type": "string", "required": false, "description_cn": "数字(经验点)或 数字L(等级)" }
+        ],
+        "1.21.60": [
+          { "name": "操作", "type": "string", "required": true, "values": ["add","set","query"] },
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "数量", "type": "string", "required": false }
+        ]
+      }
+    },
+    "clone": {
+      "name": "clone",
+      "category": "world",
+      "description_cn": "将区域内方块复制到另一位置",
+      "description_en": "Clones blocks from one region to another",
+      "url": "https://minecraft.wiki/w/Commands/clone",
+      "params": {
+        "1.16.220": [
+          { "name": "起点", "type": "position", "required": true },
+          { "name": "终点", "type": "position", "required": true },
+          { "name": "目标", "type": "position", "required": true },
+          { "name": "模式", "type": "string", "required": false, "values": ["replace","masked","filtered"] },
+          { "name": "处理", "type": "string", "required": false, "values": ["normal","force","move"] }
+        ],
+        "1.21.60": [
+          { "name": "起点", "type": "position", "required": true },
+          { "name": "终点", "type": "position", "required": true },
+          { "name": "目标", "type": "position", "required": true },
+          { "name": "模式", "type": "string", "required": false, "values": ["replace","masked","filtered"] },
+          { "name": "处理", "type": "string", "required": false, "values": ["normal","force","move"] }
+        ]
+      }
+    },
+    "playsound": {
+      "name": "playsound",
+      "category": "world",
+      "description_cn": "播放声音",
+      "description_en": "Plays a sound",
+      "url": "https://minecraft.wiki/w/Commands/playsound",
+      "params": {
+        "1.16.220": [
+          { "name": "声音", "type": "string", "required": true, "description_cn": "声音 ID，如 minecraft:entity.experience_orb.pickup" },
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "坐标", "type": "position", "required": false },
+          { "name": "音量", "type": "float", "required": false },
+          { "name": "音调", "type": "float", "required": false },
+          { "name": "最小音量", "type": "float", "required": false }
+        ],
+        "1.21.60": [
+          { "name": "声音", "type": "string", "required": true },
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "坐标", "type": "position", "required": false },
+          { "name": "音量", "type": "float", "required": false },
+          { "name": "音调", "type": "float", "required": false },
+          { "name": "最小音量", "type": "float", "required": false }
+        ]
+      }
+    },
+    "particle": {
+      "name": "particle",
+      "category": "world",
+      "description_cn": "创建粒子效果",
+      "description_en": "Creates particle effects",
+      "url": "https://minecraft.wiki/w/Commands/particle",
+      "params": {
+        "1.16.220": [
+          { "name": "粒子", "type": "string", "required": true, "description_cn": "粒子效果名称" },
+          { "name": "坐标", "type": "position", "required": true },
+          { "name": "xd", "type": "float", "required": false },
+          { "name": "yd", "type": "float", "required": false },
+          { "name": "zd", "type": "float", "required": false },
+          { "name": "速度", "type": "float", "required": false },
+          { "name": "数量", "type": "int", "required": false }
+        ],
+        "1.21.60": [
+          { "name": "粒子", "type": "string", "required": true },
+          { "name": "坐标", "type": "position", "required": true },
+          { "name": "xd", "type": "float", "required": false },
+          { "name": "yd", "type": "float", "required": false },
+          { "name": "zd", "type": "float", "required": false },
+          { "name": "速度", "type": "float", "required": false },
+          { "name": "数量", "type": "int", "required": false }
+        ]
+      }
+    },
+    "setworldspawn": {
+      "name": "setworldspawn",
+      "category": "world",
+      "description_cn": "设置世界出生点",
+      "description_en": "Sets the world spawn point",
+      "url": "https://minecraft.wiki/w/Commands/setworldspawn",
+      "params": {
+        "1.16.220": [
+          { "name": "坐标", "type": "position", "required": false },
+          { "name": "角度", "type": "float", "required": false, "description_cn": "出生朝向角度" }
+        ],
+        "1.21.60": [
+          { "name": "坐标", "type": "position", "required": false },
+          { "name": "角度", "type": "float", "required": false }
+        ]
+      }
+    },
+    "spreadplayers": {
+      "name": "spreadplayers",
+      "category": "entity",
+      "description_cn": "将实体随机传送到指定区域内分散开",
+      "description_en": "Teleports entities to random positions spread apart",
+      "url": "https://minecraft.wiki/w/Commands/spreadplayers",
+      "params": {
+        "1.16.220": [
+          { "name": "中心x", "type": "float", "required": true },
+          { "name": "中心z", "type": "float", "required": true },
+          { "name": "最小距离", "type": "float", "required": true },
+          { "name": "最大范围", "type": "float", "required": true },
+          { "name": "目标", "type": "selector", "required": true }
+        ],
+        "1.21.60": [
+          { "name": "中心x", "type": "float", "required": true },
+          { "name": "中心z", "type": "float", "required": true },
+          { "name": "最小距离", "type": "float", "required": true },
+          { "name": "最大范围", "type": "float", "required": true },
+          { "name": "目标", "type": "selector", "required": true }
+        ]
+      }
+    },
+    "title": {
+      "name": "title",
+      "category": "server",
+      "description_cn": "控制屏幕标题显示",
+      "description_en": "Controls screen titles",
+      "url": "https://minecraft.wiki/w/Commands/title",
+      "params": {
+        "1.16.220": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "动作", "type": "string", "required": true, "values": ["clear","reset","title","subtitle","actionbar","times"] },
+          { "name": "内容", "type": "rawtext", "required": false, "description_cn": "title/subtitle/actionbar 时为 rawtext JSON；times 时为 fadeIn stay fadeOut" }
+        ],
+        "1.21.60": [
+          { "name": "玩家", "type": "player", "required": true },
+          { "name": "动作", "type": "string", "required": true, "values": ["clear","reset","title","subtitle","actionbar","times"] },
+          { "name": "内容", "type": "rawtext", "required": false }
+        ]
+      }
+    },
+    "function": {
+      "name": "function",
+      "category": "server",
+      "description_cn": "执行一个函数文件",
+      "description_en": "Runs a function file",
+      "url": "https://minecraft.wiki/w/Commands/function",
+      "params": {
+        "1.16.220": [
+          { "name": "函数名", "type": "string", "required": true, "description_cn": "行为包函数路径，如 namespace:path/to/function" }
+        ],
+        "1.21.60": [
+          { "name": "函数名", "type": "string", "required": true }
+        ]
+      }
+    },
+    "tag": {
+      "name": "tag",
+      "category": "entity",
+      "description_cn": "管理实体标签",
+      "description_en": "Manages entity tags",
+      "url": "https://minecraft.wiki/w/Commands/tag",
+      "params": {
+        "1.16.220": [
+          { "name": "目标", "type": "selector", "required": true },
+          { "name": "操作", "type": "string", "required": true, "values": ["add","remove","list"] },
+          { "name": "标签名", "type": "string", "required": false }
+        ],
+        "1.21.60": [
+          { "name": "目标", "type": "selector", "required": true },
+          { "name": "操作", "type": "string", "required": true, "values": ["add","remove","list"] },
+          { "name": "标签名", "type": "string", "required": false }
+        ]
+      }
+    }
+  }
+}
