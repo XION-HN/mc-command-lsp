@@ -38,7 +38,15 @@
       "overloads": [ { "versions": "*", "params": [
         { "name": "子命令", "type": "enum", "values": ["give", "clear"], "required": true },
         { "name": "目标", "type": "player", "required": true },
-        { "name": "效果", "type": "string", "required": false, "description_cn": "如 speed/strength/regeneration" },
+        { "name": "效果", "type": "enum", "required": false,
+          "values": ["speed", "slowness", "haste", "mining_fatigue", "strength", "instant_health",
+                     "instant_damage", "jump_boost", "nausea", "regeneration", "resistance",
+                     "fire_resistance", "water_breathing", "invisibility", "blindness",
+                     "night_vision", "hunger", "weakness", "poison", "wither", "health_boost",
+                     "absorption", "saturation", "glowing", "levitation", "luck", "unluck",
+                     "slow_falling", "conduit_power", "dolphins_grace", "bad_omen",
+                     "hero_of_the_village", "darkness"],
+          "description_cn": "状态效果 id" },
         { "name": "秒数", "type": "int", "required": false },
         { "name": "强度", "type": "int", "required": false }
       ] } ]
@@ -187,7 +195,17 @@
     "summon": {
       "name": "summon", "description_cn": "生成实体", "description_en": "Summon",
       "overloads": [ { "versions": "*", "params": [
-        { "name": "实体", "type": "string", "required": true, "description_cn": "实体 id" },
+        { "name": "实体", "type": "enum", "required": true,
+          "values": ["armor_stand", "arrow", "chicken", "cow", "pig", "sheep", "rabbit",
+                     "zombie", "skeleton", "creeper", "enderman", "spider", "wolf",
+                     "ocelot", "cat", "horse", "villager", "wither_skeleton", "stray",
+                     "husk", "drowned", "phantom", "shulker", "guardian",
+                     "elder_guardian", "slime", "magma_cube", "blaze", "ghast",
+                     "wither", "ender_dragon", "item", "xp_orb", "tnt", "minecart",
+                     "boat", "item_frame", "painting", "area_effect_cloud",
+                     "villager_v2", "allay", "goat", "axolotl", "glow_squid",
+                     "warden", "frog", "tadpole"],
+          "description_cn": "实体 id" },
         { "name": "x", "type": "coordinate", "required": false },
         { "name": "y", "type": "coordinate", "required": false },
         { "name": "z", "type": "coordinate", "required": false }
