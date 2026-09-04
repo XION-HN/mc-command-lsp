@@ -1,9 +1,15 @@
 plugins {
     id 'java-library'
+    id 'application'
 }
 
 group = 'dev.mccmd'
 version = '0.1.0'
+
+application {
+    mainClass = 'dev.mccmd.lsp.McCommandLspServer'
+    applicationName = 'mc-command-lsp'
+}
 
 repositories {
     mavenCentral()
