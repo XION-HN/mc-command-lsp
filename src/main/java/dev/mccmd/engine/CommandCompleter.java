@@ -39,11 +39,19 @@ public final class CommandCompleter {
         public final String currentParam;
         /** 解析告警/错误（如某必填参数不合法）。 */
         public final List<String> errors;
+        /** 本次使用的输入前缀（供 LSP 计算替换范围，可能为 ""）。 */
+        public final String currentPrefix;
 
         Result(List<Suggestion> suggestions, String currentParam, List<String> errors) {
+            this(suggestions, currentParam, errors, null);
+        }
+
+        Result(List<Suggestion> suggestions, String currentParam, List<String> errors,
+               String currentPrefix) {
             this.suggestions = suggestions;
             this.currentParam = currentParam;
             this.errors = errors;
+            this.currentPrefix = currentPrefix != null ? currentPrefix : "";
         }
     }
 
@@ -80,7 +88,7 @@ public final class CommandCompleter {
             rest = head.substring(sp + 1);
         }
         if (cmd == null || cmd.isEmpty()) {
-            return new Result(commandCandidates("", version), null, Collections.emptyList());
+            return new Result(commandCandidates("", version), null, Collections.emptyList(), "");
         }
 
         CommandDef def = commands.command(cmd);
@@ -88,15 +96,15 @@ public final class CommandCompleter {
             // 命令名未输完 → 命令候选；否则报未知命令
             List<Suggestion> cs = commandCandidates(cmd, version);
             if (!cs.isEmpty() && cs.get(0).insertText.startsWith(cmd)) {
-                return new Result(cs, null, Collections.emptyList());
+                return new Result(cs, null, Collections.emptyList(), cmd);
             }
             return new Result(Collections.emptyList(), null,
-                    List.of("未知命令：" + cmd));
+                    List.of("未知命令：" + cmd), cmd);
         }
 
         if (sp < 0) {
             // 命令名刚好输完（无参数输入）
-            return new Result(Collections.emptyList(), null, Collections.emptyList());
+            return new Result(Collections.emptyList(), null, Collections.emptyList(), cmd);
         }
         return completeParams(def, rest, version);
     }
@@ -105,7 +113,7 @@ public final class CommandCompleter {
         List<ParamDef> params = commands.paramsFor(def.name, version);
         if (params == null || params.isEmpty()) {
             return new Result(Collections.emptyList(), null,
-                    List.of("命令在版本 " + version + " 无参数定义"));
+                    List.of("命令在版本 " + version + " 无参数定义"), "");
         }
 
         // 拆分已完整输入段与正在输入段（光标处）
@@ -149,12 +157,12 @@ public final class CommandCompleter {
 
         if (idx >= params.size()) {
             return new Result(Collections.emptyList(), null,
-                    errors.isEmpty() ? Collections.emptyList() : errors);
+                    errors.isEmpty() ? Collections.emptyList() : errors, prefix);
         }
         ParamDef cur = params.get(idx);
         List<Suggestion> sug = suggestFor(cur, prefix, consumedItemId);
         return new Result(sug, cur.name,
-                errors.isEmpty() ? Collections.emptyList() : errors);
+                errors.isEmpty() ? Collections.emptyList() : errors, prefix);
     }
 
     /** 生成当前参数的候选。 */
