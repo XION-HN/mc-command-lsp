@@ -113,7 +113,7 @@ public final class McLspCore {
         for (Suggestion s : r.suggestions) {
             JSONObject it = new JSONObject();
             it.put("label", s.label);
-            it.put("filterText", s.insertText);
+            it.put("filterText", s.filter != null && !s.filter.isEmpty() ? s.filter : s.insertText);
             if (s.detail != null && !s.detail.isEmpty()) it.put("detail", s.detail);
             it.put("kind", kindNumber(s.kind));
             JSONObject range = new JSONObject()

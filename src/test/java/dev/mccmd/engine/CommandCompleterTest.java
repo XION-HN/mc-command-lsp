@@ -128,6 +128,63 @@ public class CommandCompleterTest {
                 .anyMatch(s -> "@a[type=zombie".equals(s.insertText)));
     }
 
+    // ---- 选择器括号内值补全（仿 Blockception）----
+
+    @Test
+    public void selector_bracketAllAttributeKeys() {
+        Result r = cc.complete("/kill @a[", "1.21.60");
+        assertTrue("应含完整属性键 name=/type=/scores=/c= 等",
+                r.suggestions.stream().anyMatch(s -> "@a[name=".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@a[type=".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@a[scores=".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@a[c=".equals(s.insertText)));
+    }
+
+    @Test
+    public void selector_attributeKey_hasCnDetail() {
+        Result r = cc.complete("/kill @a[", "1.21.60");
+        var s = r.suggestions.stream().filter(x -> "@a[tag=".equals(x.insertText)).findFirst();
+        assertTrue("属性键应带中文说明", s.isPresent() && s.get().detail != null
+                && s.get().detail.contains("标签"));
+    }
+
+    @Test
+    public void selector_valueCount_hasLimits() {
+        Result r = cc.complete("/kill @e[c=", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@e[c=1".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@e[c=-1".equals(s.insertText)));
+    }
+
+    @Test
+    public void selector_valueNegative_type() {
+        Result r = cc.complete("/kill @e[type=!zom", "1.21.60");
+        assertTrue("应支持排除 !type",
+                r.suggestions.stream().anyMatch(s -> "@e[type=!zombie".equals(s.insertText)));
+    }
+
+    @Test
+    public void selector_valueCoordinate_relOrAbs() {
+        Result r = cc.complete("/kill @e[x=", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@e[x=~1".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "@e[x=1".equals(s.insertText)));
+    }
+
+    @Test
+    public void selector_valueScores_nestedBrace() {
+        Result r = cc.complete("/kill @a[scores=", "1.21.60");
+        assertTrue("scores= 后应给 {}",
+                r.suggestions.stream().anyMatch(s -> s.insertText.contains("scores={")));
+    }
+
+    @Test
+    public void selector_bracketFilter_isValueSuffix() {
+        // 客户端词尾过滤键应为"用户正在敲的值"，而非整词 @a[type=...
+        Result r = cc.complete("/kill @a[type=zom", "1.21.60");
+        var s = r.suggestions.stream().filter(x -> x.insertText.contains("zombie")).findFirst();
+        assertTrue(s.isPresent());
+        assertEquals("zombie", s.get().filter);
+    }
+
     @Test
     public void setblock_compactOffsetCoords_thenDataThenMode() {
         Result r = cc.complete("/setblock ~13~13~13 wool 1 des", "1.21.60");

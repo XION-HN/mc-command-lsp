@@ -65,12 +65,21 @@ public final class CommandCompleter {
         public final String detail;
         /** 类别：command/item/selector/value/enum/literal/other。 */
         public final String kind;
+        /** 客户端前缀过滤键：缺省用 insertText。
+         *  选择器等整词替换时须给"用户正在敲的后缀"（如 @a[type= 后是 zombie），
+         *  否则客户端按词首 @a[... 过滤会漏掉。 */
+        public final String filter;
 
         public Suggestion(String insertText, String label, String detail, String kind) {
+            this(insertText, label, detail, kind, null);
+        }
+
+        public Suggestion(String insertText, String label, String detail, String kind, String filter) {
             this.insertText = insertText;
             this.label = label != null ? label : insertText;
             this.detail = detail;
             this.kind = kind;
+            this.filter = filter;
         }
     }
 
@@ -593,7 +602,12 @@ public final class CommandCompleter {
         return out;
     }
 
-    /** 选择器目标补全：@a..@s，进入 [ 后补参数键(name=/type=...)并可结束 ]。 */
+    /** 选择器目标补全：仿 Blockception。
+     *  @s          → 补 @a/@p/@e/@r/@s 或 @s[ 开可选参数
+     *  @s[key     → 补属性键(name=/type=/tag=...，带中文说明)
+     *  @s[key=va  → 按属性给值(实体/游戏模式/坐标/数量/负号!=/{)
+     *  @s[scores={…  → 记分项花括号内继续补
+     */
     private List<Suggestion> selectorSuggestions(String prefix) {
         String lower = prefix.toLowerCase();
         List<Suggestion> out = new ArrayList<>();
@@ -601,69 +615,130 @@ public final class CommandCompleter {
         if (bracket >= 0) {
             String head = prefix.substring(0, bracket + 1);
             String inside = prefix.substring(bracket + 1);
-            int eq = inside.indexOf('=');
-            if (eq >= 0) {
-                // 正在输入某键的值：gamemode=/type= 等给候选
-                String key = inside.substring(0, eq).trim();
-                String valPrefix = inside.substring(eq + 1);
-                for (String cand : selectorValueCandidates(key)) {
-                    String full = head + key + "=" + cand;
-                    if (full.toLowerCase().startsWith(lower)) {
-                        out.add(new Suggestion(full, cand, "选择器值", "value"));
-                    }
-                }
-                if (valPrefix.length() > 0) {
-                    out.add(new Suggestion(head + "]", "]", "结束参数", "selector"));
-                }
-                return out;
+
+            // 花括号/嵌套结构内（scores={...}、hasitem=[...]）不再给顶层键
+            int openBrace = inside.lastIndexOf('{');
+            int closeBrace = inside.lastIndexOf('}');
+            boolean inNested = openBrace >= 0 && (closeBrace < 0 || closeBrace < openBrace);
+            if (inNested) {
+                return selectorNested(prefix, head, inside.substring(0, openBrace + 1),
+                        inside.substring(openBrace + 1));
             }
-            for (String key : SELECTOR_KEYS) {
-                String full = head + key;
-                if (full.toLowerCase().startsWith(lower)) {
-                    out.add(new Suggestion(full, key, "选择器参数", "selector"));
-                }
+
+            // 找光标所在的"键"：按逗号切最后一个片段
+            int lastComma = inside.lastIndexOf(',');
+            String seg = lastComma >= 0 ? inside.substring(lastComma + 1) : inside;
+            int eq = seg.indexOf('=');
+            if (eq >= 0) {
+                String key = seg.substring(0, eq).trim();
+                String valPrefix = seg.substring(eq + 1);
+                return selectorValue(out, head, key, valPrefix, prefix);
+            }
+            // 在属性键位：给全键名（客户端自行前缀过滤，仿 Blockception 全量候选）
+            for (String[] a : SELECTOR_ATTRS) {
+                out.add(new Suggestion(head + a[0] + "=", a[0], a[1], "selector", a[0]));
             }
             if (!inside.isEmpty()) {
-                out.add(new Suggestion(head + "]", "]", "结束参数", "selector"));
+                out.add(new Suggestion(head + "]", "]", "结束选择器参数", "selector", "]"));
             }
             return out;
         }
+
         for (String s : List.of("@a", "@p", "@e", "@r", "@s")) {
-            if (s.toLowerCase().startsWith(lower)) {
-                out.add(new Suggestion(s, s, "选择器", "selector"));
-            }
+            out.add(new Suggestion(s, s, "目标选择器", "selector", s.substring(1)));
         }
         // 已完整输入某个基选择器且尚未开括号时，提示可追加可选参数 [ ]。
-        // 如 /give @p @s → 给 @s 与 @s[ 两个候选，后者展开写 type=... 等。
         String base = null;
         for (String s : List.of("@a", "@p", "@e", "@r", "@s")) {
             if (s.equalsIgnoreCase(lower)) { base = s; break; }
         }
         if (base != null) {
             out.add(new Suggestion(base + "[", base + "[可选参数]",
-                    "追加可选参数，如 " + base + "[type=zombie]", "selector"));
+                    "追加可选参数，如 " + base + "[type=zombie]", "selector", base.substring(1)));
         }
         return out;
     }
 
-    /** 常见选择器键的取值候选（type=/gamemode=/scores=...）。 */
-    private static java.util.List<String> selectorValueCandidates(String key) {
-        switch (key.toLowerCase()) {
+    /** 按属性键补值候选（仿 Blockception attribute-values）。 */
+    private List<Suggestion> selectorValue(List<Suggestion> out, String head,
+                                           String key, String valPrefix, String fullPrefix) {
+        String k = key.toLowerCase();
+        String headInsert = head + k + "=";
+        String vp = valPrefix.toLowerCase();
+
+        // 负号前缀（!=...）：先给一个 "!" 让用户能排除
+        boolean negated = vp.startsWith("!");
+        String valueKey = negated ? k : k;
+
+        switch (valueKey) {
             case "type":
-            case "family":
-                return ENTITY_IDS;
-            case "gamemode":
+            case "family": {
+                for (String id : ENTITY_IDS) {
+                    String cand = (negated ? "!" : "") + id;
+                    out.add(new Suggestion(headInsert + cand, id, "实体/家族类型", "value", id));
+                }
+                return out;
+            }
             case "m":
-                return java.util.List.of("survival", "creative", "adventure",
-                        "0", "1", "2");
+            case "gamemode": {
+                for (String g : java.util.List.of("survival", "creative", "adventure", "spectator")) {
+                    out.add(new Suggestion(headInsert + g, g, "游戏模式", "value", g));
+                }
+                for (String g : java.util.List.of("0", "1", "2", "3")) {
+                    out.add(new Suggestion(headInsert + g, g + " (数字)", "游戏模式", "value", g));
+                }
+                return out;
+            }
             case "scores":
-                return java.util.List.of("{");
-            case "tag":
+            case "has_property":
+                out.add(new Suggestion(headInsert + "{", "{}", "花括号嵌套定义", "value", "{"));
+                return out;
+            case "hasitem":
+                out.add(new Suggestion(headInsert + "[", "[]", "hasitem 数组定义", "value", "["));
+                return out;
+            case "c":
+                for (String s : java.util.List.of("1", "-1", "5", "-5")) {
+                    out.add(new Suggestion(headInsert + s, s, "限制目标数量（负数=从队尾选）", "value", s));
+                }
+                return out;
+            case "dx": case "dy": case "dz":
+                for (String s : java.util.List.of("5", "-5")) {
+                    out.add(new Suggestion(headInsert + s, s, "区域长度", "value", s));
+                }
+                return out;
+            case "x": case "y": case "z":
+                for (String s : java.util.List.of("1", "~1", "~-1")) {
+                    out.add(new Suggestion(headInsert + s, s, "坐标（绝对或 ~ 相对）", "value", s));
+                }
+                return out;
+            case "r": case "rm": case "l": case "lm":
+                for (String s : java.util.List.of("10", "50", "100")) {
+                    out.add(new Suggestion(headInsert + s, s, "数值范围", "value", s));
+                }
+                return out;
+            case "rx": case "rxm": case "ry": case "rym":
+                for (String s : java.util.List.of("0", "-90", "90")) {
+                    out.add(new Suggestion(headInsert + s, s, "旋转角度（-180~180）", "value", s));
+                }
+                return out;
             case "name":
-                return java.util.List.of();
+            case "tag":
+                out.add(new Suggestion(headInsert, "(输入)名字/标签", "自定义名字或标签文本", "value", ""));
+                return out;
             default:
-                return java.util.List.of(); // 数值型自由输入
+                return out; // 其它数值自由输入
         }
+    }
+
+    /** scores={...} 花括号内的补全：仿 Blockception Scores.provideCompletion。 */
+    private List<Suggestion> selectorNested(String prefix, String head, String braceHead,
+                                            String bodyInside) {
+        List<Suggestion> out = new ArrayList<>();
+        String base = braceHead; // 已含 "{"
+        // 用占位说明该处应填 记分项=数值，并给一个括号结束候选
+        out.add(new Suggestion(base + "objective=value", "objective=value", "记分项=数值", "value", "objective"));
+        out.add(new Suggestion(base + "}", "}", "结束花括号", "selector", "}"));
+        return out;
     }
 
     private static final java.util.List<String> ENTITY_IDS =
@@ -737,11 +812,35 @@ public final class CommandCompleter {
                     "if", "unless", "store", "run");
     /** 需要紧跟一个实体/选择器参数的 execute 子命令。 */
     private static final List<String> EXEC_SELECTOR_SUBS = List.of("as", "at");
-    /** 选择器内部参数键（name=,type=,tag=...）。 */
-    private static final List<String> SELECTOR_KEYS = List.of(
-            "name=", "type=", "tag=", "family=", "x=", "y=", "z=",
-            "dx=", "dy=", "dz=", "r=", "rm=", "l=", "lm=", "c=", "m=",
-            "scores=", "gamemode=");
+    /**
+     * 选择器属性键全表（仿 Blockception selector-attribute）：{键, 中文说明}。
+     * 客户端按 filterKey 前缀过滤（全量候选，仿 VS Code 插件）。
+     */
+    private static final String[][] SELECTOR_ATTRS = {
+            {"c", "限制目标数量（负数=从队尾选）"},
+            {"dx", "沿 X 轴的检测盒长度"},
+            {"dy", "沿 Y 轴的检测盒长度"},
+            {"dz", "沿 Z 轴的检测盒长度"},
+            {"family", "家族类型过滤，如 family=zombie"},
+            {"has_property", "实体属性测试"},
+            {"hasitem", "检测实体物品栏"},
+            {"l", "目标经验等级上限"},
+            {"lm", "目标经验等级下限"},
+            {"m", "玩家游戏模式"},
+            {"name", "按名字过滤目标"},
+            {"r", "距执行点最大半径"},
+            {"rm", "距执行点最小半径"},
+            {"rx", "最大垂直旋转角"},
+            {"rxm", "最小垂直旋转角"},
+            {"ry", "最大水平旋转角"},
+            {"rym", "最小水平旋转角"},
+            {"scores", "记分板分数条件 scores={objective=1..5}"},
+            {"tag", "按标签过滤，可用 !tag 排除"},
+            {"type", "实体类型过滤，可用 !type 排除"},
+            {"x", "检测盒基准 X 坐标（可 ~ 相对）"},
+            {"y", "检测盒基准 Y 坐标（可 ~ 相对）"},
+            {"z", "检测盒基准 Z 坐标（可 ~ 相对）"},
+    };
 
     // ---- 逐行语法诊断（供 LSP publishDiagnostics 用）----
 
