@@ -206,9 +206,105 @@ public class CommandCompleterTest {
     }
 
     @Test
-    public void scoreboard_criteriaDummyEnum() {
-        Result r = cc.complete("/scoreboard objectives add foo dum", "1.21.60");
-        assertTrue("准则应建议 dummy",
-                r.suggestions.stream().anyMatch(s -> "dummy".equals(s.insertText)));
+    public void execute_grammar_suggestsSubcommands() {
+        Result r = cc.complete("/execute ", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "as".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "if".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "run".equals(s.insertText)));
+    }
+
+    @Test
+    public void execute_as_afterTarget_stillSubcommands() {
+        Result r = cc.complete("/execute as @p po", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "positioned".equals(s.insertText)));
+        assertTrue(r.errors.isEmpty());
+    }
+
+    @Test
+    public void execute_positioned_branchesToAsOver() {
+        Result r = cc.complete("/execute positioned ", "1.21.60");
+        assertTrue("positioned 后可 as/over",
+                r.suggestions.stream().anyMatch(s -> "as".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "over".equals(s.insertText)));
+    }
+
+    @Test
+    public void execute_if_suggestsConditionKinds() {
+        Result r = cc.complete("/execute if ", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "block".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "entity".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "score".equals(s.insertText)));
+    }
+
+    @Test
+    public void execute_ifBlock_suggestsBlocks() {
+        Result r = cc.complete("/execute if block ~ ~ ~ sto", "1.21.60");
+        assertTrue("if block 后应补方块",
+                r.suggestions.stream().anyMatch(s -> "stone".equals(s.insertText)));
+        assertTrue(r.errors.isEmpty());
+    }
+
+    @Test
+    public void execute_ifEntity_chainsBackToSubcommand() {
+        Result r = cc.complete("/execute if entity @e[type=zombie] po", "1.21.60");
+        assertTrue("条件后应可继续子命令链",
+                r.suggestions.stream().anyMatch(s -> "positioned".equals(s.insertText)));
+    }
+
+    @Test
+    public void execute_facing_branchesToEntity() {
+        Result r = cc.complete("/execute facing ", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "entity".equals(s.insertText)));
+    }
+
+    @Test
+    public void execute_in_suggestsDimensions() {
+        Result r = cc.complete("/execute in ", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "the_end".equals(s.insertText)));
+    }
+
+    @Test
+    public void execute_deepChain_thenRun_thenCommand() {
+        Result r = cc.complete("/execute as @a at @s positioned ~ ~ ~ run setb", "1.21.60");
+        assertTrue("run 后应补命令", r.suggestions.stream()
+                .anyMatch(s -> "setblock".equals(s.insertText)));
+    }
+
+    // ---- 新命令扩覆盖 ----
+
+    @Test
+    public void trigger_twoOverloads() {
+        // 只有记分项 → 可选操作 add/set
+        Result r = cc.complete("/trigger foo ", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "add".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "set".equals(s.insertText)));
+    }
+
+    @Test
+    public void damage_enumCause_andSelector() {
+        Result r = cc.complete("/damage @e 5 ", "1.21.60");
+        assertTrue("damage 应建议伤害类型",
+                r.suggestions.stream().anyMatch(s -> "fall".equals(s.insertText)));
+    }
+
+    @Test
+    public void structure_saveVsLoad_viaActionEnum() {
+        Result r1 = cc.complete("/structure sa", "1.21.60");
+        assertTrue(r1.suggestions.stream().anyMatch(s -> "save".equals(s.insertText)));
+        Result r2 = cc.complete("/structure lo", "1.21.60");
+        assertTrue(r2.suggestions.stream().anyMatch(s -> "load".equals(s.insertText)));
+    }
+
+    @Test
+    public void testforblock_blockNameCompletion() {
+        Result r = cc.complete("/testforblock ~ ~ ~ sto", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "stone".equals(s.insertText)));
+    }
+
+    @Test
+    public void music_enumActions() {
+        Result r = cc.complete("/music @p ", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "queue".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().anyMatch(s -> "stop".equals(s.insertText)));
     }
 }

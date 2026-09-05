@@ -1211,6 +1211,790 @@
      ]
     }
    ]
+  },
+  "damage": {
+   "description_cn": "对实体造成伤害",
+   "description_en": "Damage entity",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true,
+       "description_cn": "伤害目标"
+      },
+      {
+       "name": "伤害量",
+       "type": "int",
+       "required": true
+      },
+      {
+       "name": "伤害类型",
+       "type": "enum",
+       "required": false,
+       "description_cn": "伤害来源类型",
+       "values": [
+        "contact",
+        "entity_attack",
+        "entity_explosion",
+        "block_explosion",
+        "projectile",
+        "suffocation",
+        "fall",
+        "fire",
+        "lava",
+        "drowning",
+        "starve",
+        "cactus",
+        "void",
+        "magic",
+        "wither",
+        "lightning",
+        "sonic_boom",
+        "all"
+       ]
+      },
+      {
+       "name": "由谁造成",
+       "type": "player",
+       "required": false,
+       "description_cn": "伤害来源实体"
+      },
+      {
+       "name": "bypassesArmor",
+       "type": "enum",
+       "required": false,
+       "description_cn": "是否无视护甲",
+       "values": [
+        "true",
+        "false"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "ride": {
+   "description_cn": "骑乘控制",
+   "description_en": "Ride",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "骑手",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "动作",
+       "type": "enum",
+       "values": [
+        "mount",
+        "dismount"
+       ],
+       "required": true
+      },
+      {
+       "name": "目标",
+       "type": "player",
+       "required": false,
+       "description_cn": "要骑的实体"
+      }
+     ]
+    }
+   ]
+  },
+  "music": {
+   "description_cn": "播放音乐",
+   "description_en": "Music",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "玩家",
+       "type": "player",
+       "required": true,
+       "description_cn": "目标玩家"
+      },
+      {
+       "name": "动作",
+       "type": "enum",
+       "values": [
+        "queue",
+        "play"
+       ],
+       "required": true
+      },
+      {
+       "name": "曲目",
+       "type": "string",
+       "required": true
+      },
+      {
+       "name": "音量",
+       "type": "float",
+       "required": false
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "玩家",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "stop",
+        "volume"
+       ]
+      },
+      {
+       "name": "音量",
+       "type": "float",
+       "required": false
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "玩家",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "queue"
+       ]
+      },
+      {
+       "name": "曲目",
+       "type": "string",
+       "required": false
+      },
+      {
+       "name": "fade",
+       "type": "float",
+       "required": false
+      },
+      {
+       "name": "loop",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "loop",
+        "once"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "schedule": {
+   "description_cn": "定时执行函数",
+   "description_en": "Schedule function",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "on_area_loaded"
+       ]
+      },
+      {
+       "name": "函数",
+       "type": "string",
+       "required": true
+      },
+      {
+       "name": "加载区域",
+       "type": "string",
+       "required": false
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "add"
+       ]
+      },
+      {
+       "name": "函数",
+       "type": "string",
+       "required": true
+      },
+      {
+       "name": "时间",
+       "type": "string",
+       "required": true,
+       "description_cn": "如 1s 5s 1d"
+      },
+      {
+       "name": "追加",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "append",
+        "replace"
+       ]
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "clear"
+       ]
+      },
+      {
+       "name": "函数",
+       "type": "string",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "structure": {
+   "description_cn": "结构操作",
+   "description_en": "Structure",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": true,
+       "values": [
+        "save"
+       ]
+      },
+      {
+       "name": "名称",
+       "type": "string",
+       "required": true
+      },
+      {
+       "name": "x1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "x2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "保存模式",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "always",
+        "disk",
+        "memory"
+       ]
+      },
+      {
+       "name": "包含实体",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "true",
+        "false"
+       ]
+      },
+      {
+       "name": "方块组件",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "true",
+        "false"
+       ]
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": true,
+       "values": [
+        "load"
+       ]
+      },
+      {
+       "name": "名称",
+       "type": "string",
+       "required": true
+      },
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "旋转",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "0_degrees",
+        "90_degrees",
+        "180_degrees",
+        "270_degrees"
+       ]
+      },
+      {
+       "name": "镜像",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "none",
+        "x",
+        "z",
+        "xz"
+       ]
+      },
+      {
+       "name": "实体",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "true",
+        "false"
+       ]
+      },
+      {
+       "name": "方块",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "true",
+        "false"
+       ]
+      },
+      {
+       "name": "水",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "true",
+        "false"
+       ]
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": true,
+       "values": [
+        "delete"
+       ]
+      },
+      {
+       "name": "名称",
+       "type": "string",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "mobevent": {
+   "description_cn": "生物事件开关",
+   "description_en": "Mob event",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": true,
+       "values": [
+        "eventslist",
+        "event"
+       ]
+      },
+      {
+       "name": "事件名",
+       "type": "string",
+       "required": false
+      },
+      {
+       "name": "开关",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "true",
+        "false"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "trigger": {
+   "description_cn": "触发记分板目标",
+   "description_en": "Trigger objective",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "记分项",
+       "type": "string",
+       "required": true
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "记分项",
+       "type": "string",
+       "required": true
+      },
+      {
+       "name": "操作",
+       "type": "enum",
+       "values": [
+        "add",
+        "set"
+       ],
+       "required": true
+      },
+      {
+       "name": "数值",
+       "type": "int",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "testfor": {
+   "description_cn": "检测目标",
+   "description_en": "Test for target",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true,
+       "description_cn": "要检测的玩家/实体"
+      }
+     ]
+    }
+   ]
+  },
+  "testforblock": {
+   "description_cn": "检测方块",
+   "description_en": "Test for block",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "方块",
+       "type": "block",
+       "required": true
+      },
+      {
+       "name": "数据值",
+       "type": "int",
+       "required": false,
+       "description_cn": "tileData(旧版)"
+      }
+     ]
+    }
+   ]
+  },
+  "testforblocks": {
+   "description_cn": "检测区域方块一致",
+   "description_en": "Test for blocks",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "x1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "x2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "模式",
+       "type": "enum",
+       "required": false,
+       "values": [
+        "all",
+        "masked"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "clearspawnpoint": {
+   "description_cn": "清除重生点",
+   "description_en": "Clear spawn point",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "玩家",
+       "type": "player",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "me": {
+   "description_cn": "发送消息",
+   "description_en": "Me message",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "消息",
+       "type": "string",
+       "required": true,
+       "description_cn": "要发送的消息"
+      }
+     ]
+    }
+   ]
+  },
+  "setmaxplayers": {
+   "description_cn": "设置最大玩家数",
+   "description_en": "Set max players",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "数量",
+       "type": "int",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "toggledownfall": {
+   "description_cn": "切换天气(雨/雪)",
+   "description_en": "Toggle down fall",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": []
+    }
+   ]
+  },
+  "titleraw": {
+   "description_cn": "JSON 标题",
+   "description_en": "Raw title",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "玩家",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "动作",
+       "type": "enum",
+       "required": true,
+       "values": [
+        "clear",
+        "reset",
+        "title",
+        "subtitle",
+        "actionbar"
+       ]
+      },
+      {
+       "name": "rawtext",
+       "type": "string",
+       "required": false,
+       "description_cn": "JSON 文本"
+      }
+     ]
+    }
+   ]
   }
  }
 }

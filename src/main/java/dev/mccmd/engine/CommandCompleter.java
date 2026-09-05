@@ -3,6 +3,7 @@ package dev.mccmd.engine;
 import dev.mccmd.data.CommandIndex;
 import dev.mccmd.data.ItemIndex;
 import dev.mccmd.model.CommandDef;
+import dev.mccmd.model.ExecGrammar;
 import dev.mccmd.model.ItemDef;
 import dev.mccmd.model.ParamDef;
 import dev.mccmd.model.SpecialValue;
@@ -300,7 +301,25 @@ public final class CommandCompleter {
         return n;
     }
 
-    /** execute 链：as/at/... 组合后 run <命令>；run 之后递归交给任意命令补全。 */
+    /** execute 链解析内部状态。null = 停在“子命令槽”。 */
+    private abstract static class ExecNode {
+    }
+
+    /** 停在参数树某节点：node 待消费，follow 为同分支后续（链式）。 */
+    private static final class TreeState extends ExecNode {
+        final ExecGrammar.Node node;
+        final ExecNode follow;
+        TreeState(ExecGrammar.Node node, ExecNode follow) {
+            this.node = node;
+            this.follow = follow;
+        }
+    }
+
+    /**
+     * execute 链：语法树驱动。链式拼多个子命令，run 后递归给任意命令。
+     * 解析方式：把已输入 token 逐个喂进状态机；停在“子命令槽”则补子命令关键字，
+     * 停在“某子命令参数树内”则补该参数/字面量。多状态并存时合并建议。
+     */
     private Result completeExecute(CommandDef def, String rest, String version) {
         boolean trailing = rest.endsWith(" ");
         String body = trailing ? rest.substring(0, rest.length() - 1) : rest;
@@ -315,64 +334,187 @@ public final class CommandCompleter {
                 done = all.subList(0, all.size() - 1);
             }
         }
+        ExecGrammar grammar = commands.execGrammarFor(version);
+        if (grammar == null || grammar.clauses.isEmpty()) {
+            return legacyExecuteSuggest(done, prefix);
+        }
 
-        // 定位 run（在已完整输入的 token 中）
-        int runIdx = -1;
+        // run 之后的嵌套命令直接递归（execute 链只解析到 run 前）
         for (int i = 0; i < done.size(); i++) {
-            if ("run".equals(done.get(i))) {
-                runIdx = i;
-                break;
-            }
-        }
-        if (runIdx >= 0) {
-            // run 之后的内容交给嵌套命令补全
-            StringBuilder nested = new StringBuilder();
-            for (int i = runIdx + 1; i < done.size(); i++) {
-                if (nested.length() > 0) nested.append(' ');
-                nested.append(done.get(i));
-            }
-            if (trailing || !prefix.isEmpty()) {
-                if (nested.length() > 0) nested.append(' ');
-                nested.append(prefix);
+            if ("run".equalsIgnoreCase(done.get(i))) {
+                StringBuilder nested = new StringBuilder();
+                for (int j = i + 1; j < done.size(); j++) {
+                    if (nested.length() > 0) nested.append(' ');
+                    nested.append(done.get(j));
+                }
+                if (trailing || !prefix.isEmpty()) {
+                    if (nested.length() > 0) nested.append(' ');
+                    nested.append(prefix);
+                }
                 if (trailing) nested.append(' ');
-            }
-            return complete(nested.toString(), version);
-        }
-
-        // 尚未输入 run：判断当前停在“子命令槽”还是“某子命令的参数槽”
-        String lastSub = null;
-        for (String t : done) {
-            if (EXEC_SUBCOMMANDS.contains(t)) {
-                lastSub = t;
-            } else {
-                lastSub = null; // 这个 token 是上一个子命令的参数
+                return complete(nested.toString(), version);
             }
         }
-        if ("run".equals(lastSub)) lastSub = null;
 
+        // 状态机：逐个喂 done token
+        List<ExecNode> states = new ArrayList<>();
+        states.add(null); // 初始在子命令槽
+        for (String tok : done) {
+            List<ExecNode> next = new ArrayList<>();
+            for (ExecNode st : states) {
+                stepExec(st, tok, grammar, next);
+            }
+            states = next;
+            if (states.isEmpty()) break;
+        }
+        if (states.isEmpty()) {
+            return legacyExecuteSuggest(done, prefix);
+        }
+
+        java.util.Set<String> seen = new java.util.HashSet<>();
         List<Suggestion> sug = new ArrayList<>();
-        String slotName;
-        if (lastSub == null) {
-            // 期待下一个子命令
-            slotName = "子命令";
-            for (String s : EXEC_SUBCOMMANDS) {
-                if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
-                    sug.add(new Suggestion(s, s, "execute 子命令", "command"));
+        String slot = null;
+        for (ExecNode st : states) {
+            if (st == null) {
+                // 停在子命令槽：建议下一个子命令关键字
+                if (slot == null) slot = "子命令";
+                for (String kw : grammar.clauses.keySet()) {
+                    if (!kw.toLowerCase().startsWith(prefix.toLowerCase())) continue;
+                    String detail = "run".equalsIgnoreCase(kw)
+                            ? "以 run 执行命令" : "execute 子命令";
+                    if (seen.add(kw)) sug.add(new Suggestion(kw, kw, detail, "command"));
                 }
-            }
-        } else {
-            // 期待该子命令的参数（也允许继续输入子命令，容错）
-            slotName = lastSub;
-            if (EXEC_SELECTOR_SUBS.contains(lastSub)) {
-                sug.addAll(selectorSuggestions(prefix));
-            }
-            for (String s : EXEC_SUBCOMMANDS) {
-                if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
-                    sug.add(new Suggestion(s, s, "execute 子命令", "command"));
+            } else {
+                TreeState ts = (TreeState) st;
+                for (NodeExpect x : expectOf(ts.node)) {
+                    if (x.words != null) {
+                        if (slot == null) slot = "子命令参数";
+                        for (String w : x.words) {
+                            if (w.toLowerCase().startsWith(prefix.toLowerCase())
+                                    && seen.add(w)) {
+                                sug.add(new Suggestion(w, w, x.detail, "command"));
+                            }
+                        }
+                    } else if (x.param != null) {
+                        if (slot == null) slot = x.param.def.name;
+                        for (Suggestion s : suggestFor(x.param.def, prefix, null)) {
+                            if (seen.add(s.insertText)) sug.add(s);
+                        }
+                    }
                 }
             }
         }
-        return new Result(sug, slotName, Collections.emptyList(), prefix);
+        return new Result(sug, slot, Collections.emptyList(), prefix);
+    }
+
+    /** 状态机前进一个 token。 */
+    private void stepExec(ExecNode state, String tok, ExecGrammar grammar, List<ExecNode> out) {
+        if (state == null) {
+            // 子命令槽：token 匹配某子命令关键字 → 进入其参数树
+            for (String kw : grammar.clauses.keySet()) {
+                if (!kw.equalsIgnoreCase(tok)) continue;
+                ExecGrammar.Node tree = grammar.clauses.get(kw);
+                if (tree == null) {
+                    out.add(null); // 无参数子命令 → 消费后回子命令槽
+                } else {
+                    out.add(new TreeState(tree, null));
+                }
+            }
+            return;
+        }
+        TreeState ts = (TreeState) state;
+        consumeNode(ts.node, ts.follow, tok, grammar, out);
+    }
+
+    /**
+     * 让一个节点消费 token。
+     * 成功时：若 follow==null 说明本分支参数已结束 → 回到子命令槽(null)；
+     * 否则继续 follow 链。Param 不匹配且必填、Lit 不匹配 → 该路径无输出（分支失败）。
+     */
+    private void consumeNode(ExecGrammar.Node node, ExecNode follow, String tok,
+                             ExecGrammar grammar, List<ExecNode> out) {
+        if (node instanceof ExecGrammar.Param p) {
+            if (paramAccepts(p.def, tok)) {
+                if (follow == null) out.add(null);
+                else out.add(follow);
+            }
+        } else if (node instanceof ExecGrammar.Lit lit) {
+            if (lit.word.equalsIgnoreCase(tok)) {
+                if (follow == null) out.add(null);
+                else out.add(follow);
+            }
+        } else if (node instanceof ExecGrammar.Seq seq) {
+            if (seq.nodes.isEmpty()) {
+                if (follow == null) out.add(null);
+                else out.add(follow);
+                return;
+            }
+            ExecGrammar.Node first = seq.nodes.get(0);
+            List<ExecGrammar.Node> rest = seq.nodes.subList(1, seq.nodes.size());
+            ExecNode restFollow = follow;
+            if (!rest.isEmpty()) {
+                restFollow = rest.size() == 1
+                        ? new TreeState(rest.get(0), follow)
+                        : new TreeState(new ExecGrammar.Seq(rest), follow);
+            }
+            consumeNode(first, restFollow, tok, grammar, out);
+        } else if (node instanceof ExecGrammar.Alt alt) {
+            for (ExecGrammar.Node b : alt.branches) {
+                consumeNode(b, follow, tok, grammar, out);
+            }
+        }
+    }
+
+    /** 沿 follow 链与 seq/alt 找到最左侧待填的 Param 或 Lit（用于给建议）。 */
+
+    /** 一棵树最左侧该补的内容（用于给建议）。 */
+    private static NodeExpect[] expectOf(ExecGrammar.Node node) {
+        if (node instanceof ExecGrammar.Param p) {
+            return new NodeExpect[]{new NodeExpect(null, p)};
+        }
+        if (node instanceof ExecGrammar.Lit lit) {
+            return new NodeExpect[]{new NodeExpect(java.util.List.of(lit.word), lit.word)};
+        }
+        if (node instanceof ExecGrammar.Seq seq) {
+            if (seq.nodes.isEmpty()) return new NodeExpect[0];
+            return expectOf(seq.nodes.get(0));
+        }
+        if (node instanceof ExecGrammar.Alt alt) {
+            java.util.List<NodeExpect> out = new ArrayList<>();
+            for (ExecGrammar.Node b : alt.branches) {
+                for (NodeExpect x : expectOf(b)) out.add(x);
+            }
+            return out.toArray(new NodeExpect[0]);
+        }
+        return new NodeExpect[0];
+    }
+
+    /** 待填项：候选词列表 或 一个待填参数。 */
+    private static final class NodeExpect {
+        final java.util.List<String> words;
+        final ExecGrammar.Param param;
+        final String detail;
+        NodeExpect(java.util.List<String> words, String detail) {
+            this.words = words;
+            this.param = null;
+            this.detail = detail;
+        }
+        NodeExpect(String unused, ExecGrammar.Param param) {
+            this.words = null;
+            this.param = param;
+            this.detail = param.def.name;
+        }
+    }
+
+    /** 无 execute 语法时的退化建议（子命令关键字列表）。 */
+    private Result legacyExecuteSuggest(List<String> done, String prefix) {
+        List<Suggestion> sug = new ArrayList<>();
+        for (String s : EXEC_SUBCOMMANDS) {
+            if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
+                sug.add(new Suggestion(s, s, "execute 子命令", "command"));
+            }
+        }
+        return new Result(sug, "子命令", Collections.emptyList(), prefix);
     }
 
     /** 生成当前参数的候选。 */

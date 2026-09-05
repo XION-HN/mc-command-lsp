@@ -1,6 +1,7 @@
 package dev.mccmd.data;
 
 import dev.mccmd.model.CommandDef;
+import dev.mccmd.model.ExecGrammar;
 import dev.mccmd.model.ParamDef;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,6 +17,10 @@ public final class CommandIndex {
 
     private final String defaultVersion;
     private final Map<String, CommandDef> commands;
+    /** 版本 → execute 链语法（键 "*" 为兜底）。 */
+    private final Map<String, ExecGrammar> execGrammarByVersion;
+    /** extra 文件里覆盖用的 execute 语法（键 "*" 为兜底）。 */
+    private final Map<String, ExecGrammar> execExtra;
 
     public CommandIndex(String jsonPath) throws java.io.IOException {
         this(JsonFiles.readObject(jsonPath));
@@ -29,10 +34,22 @@ public final class CommandIndex {
 
     private void mergeOverrides(JSONObject overRoot) {
         JSONObject cmds = overRoot.optJSONObject("commands");
-        if (cmds == null) return;
-        for (String name : cmds.keySet()) {
-            JSONObject o = cmds.optJSONObject(name);
-            if (o != null) commands.put(name, parseCommand(name, o));
+        if (cmds != null) {
+            for (String name : cmds.keySet()) {
+                JSONObject o = cmds.optJSONObject(name);
+                if (o != null) commands.put(name, parseCommand(name, o));
+            }
+        }
+        JSONObject ex = overRoot.optJSONObject("executeGrammar");
+        if (ex != null) execExtra.clear();
+        if (ex != null) {
+            JSONObject versions = ex.optJSONObject("versions");
+            if (versions != null) {
+                for (String v : versions.keySet()) {
+                    JSONObject g = versions.optJSONObject(v);
+                    if (g != null) execExtra.put(v, ExecGrammar.fromJson(g));
+                }
+            }
         }
     }
 
@@ -52,6 +69,19 @@ public final class CommandIndex {
             }
         }
         this.commands = map;
+        this.execExtra = new LinkedHashMap<>();
+        Map<String, ExecGrammar> byVer = new LinkedHashMap<>();
+        JSONObject eg = root.optJSONObject("executeGrammar");
+        if (eg != null) {
+            JSONObject versions = eg.optJSONObject("versions");
+            if (versions != null) {
+                for (String v : versions.keySet()) {
+                    JSONObject g = versions.optJSONObject(v);
+                    if (g != null) byVer.put(v, ExecGrammar.fromJson(g));
+                }
+            }
+        }
+        this.execGrammarByVersion = byVer;
     }
 
     private static CommandDef parseCommand(String name, JSONObject o) {
@@ -149,5 +179,21 @@ public final class CommandIndex {
     public List<ParamDef> paramsFor(String command, String version) {
         List<List<ParamDef>> sigs = signaturesFor(command, version);
         return sigs.isEmpty() ? null : sigs.get(0);
+    }
+
+    /**
+     * 某版本的 execute 链语法；优先 extra 覆盖，其次主文件；都无匹配版本时回落到 "*"。
+     */
+    public ExecGrammar execGrammarFor(String version) {
+        ExecGrammar g = pickExec(execExtra, version);
+        if (g != null) return g;
+        return pickExec(execGrammarByVersion, version);
+    }
+
+    private static ExecGrammar pickExec(Map<String, ExecGrammar> map, String version) {
+        if (map == null || map.isEmpty()) return null;
+        ExecGrammar exact = map.get(version);
+        if (exact != null) return exact;
+        return map.get("*");
     }
 }
