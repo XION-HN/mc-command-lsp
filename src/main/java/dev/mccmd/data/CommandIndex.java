@@ -55,9 +55,9 @@ public final class CommandIndex {
     }
 
     private static CommandDef parseCommand(String name, JSONObject o) {
-        // 新版格式：overloads: [{versions:[...], params:[...]}, ...] 按版本选取；
-        // 兼容旧式 params: {version:[...]}
-        Map<String, List<ParamDef>> paramsByVersion = new LinkedHashMap<>();
+        // 新版格式：overloads: [{versions:[...], params:[...]}, ...] —— 一个版本可有多套签名；
+        // 兼容旧式 params: {version:[...]}（视为每版本一套签名）。
+        Map<String, List<List<ParamDef>>> byVersion = new LinkedHashMap<>();
         JSONArray overloads = o.optJSONArray("overloads");
         if (overloads != null && overloads.length() > 0) {
             for (int i = 0; i < overloads.length(); i++) {
@@ -67,11 +67,10 @@ public final class CommandIndex {
                 if (ps.isEmpty()) continue;
                 JSONArray vers = ov.optJSONArray("versions");
                 if (vers == null || vers.length() == 0) {
-                    // 全版本适用（作为兜底，见 paramsForVersion）
-                    paramsByVersion.put("*", ps);
+                    addSignature(byVersion, "*", ps); // 全版本通用签名（兜底）
                 } else {
                     for (int v = 0; v < vers.length(); v++) {
-                        paramsByVersion.put(vers.optString(v), ps);
+                        addSignature(byVersion, vers.optString(v), ps);
                     }
                 }
             }
@@ -79,7 +78,7 @@ public final class CommandIndex {
             JSONObject params = o.optJSONObject("params");
             if (params != null) {
                 for (String ver : params.keySet()) {
-                    paramsByVersion.put(ver, parseParams(params.optJSONArray(ver)));
+                    addSignature(byVersion, ver, parseParams(params.optJSONArray(ver)));
                 }
             }
         }
@@ -89,7 +88,14 @@ public final class CommandIndex {
                 o.optString("description_cn", ""),
                 o.optString("description_en", ""),
                 o.optString("url", ""),
-                paramsByVersion);
+                byVersion);
+    }
+
+    /** 追加一套签名，而不是覆盖该版本已有签名。 */
+    private static void addSignature(Map<String, List<List<ParamDef>>> byVersion,
+                                     String version, List<ParamDef> ps) {
+        List<List<ParamDef>> sigs = byVersion.computeIfAbsent(version, k -> new ArrayList<>());
+        sigs.add(ps);
     }
 
     private static List<ParamDef> parseParams(JSONArray arr) {
@@ -124,14 +130,24 @@ public final class CommandIndex {
         return commands.get(name);
     }
 
-    /** 某版本可用的参数；命令不存在或该版本未声明时返回 null。 */
-    public List<ParamDef> paramsFor(String command, String version) {
+    /**
+     * 某版本可用的全部签名；无匹配版本时依次回落到 "*" 与默认版本；都没有返回空表。
+     */
+    public List<List<ParamDef>> signaturesFor(String command, String version) {
         CommandDef def = commands.get(command);
-        if (def == null) return null;
-        List<ParamDef> exact = def.paramsByVersion.get(version);
+        if (def == null) return Collections.emptyList();
+        List<List<ParamDef>> exact = def.overloadsByVersion.get(version);
         if (exact != null) return exact;
-        List<ParamDef> any = def.paramsByVersion.get("*"); // 全版本签名
+        List<List<ParamDef>> any = def.overloadsByVersion.get("*"); // 全版本签名
         if (any != null) return any;
-        return def.paramsByVersion.getOrDefault(defaultVersion, null);
+        List<List<ParamDef>> defVer = def.overloadsByVersion.get(defaultVersion);
+        if (defVer != null) return defVer;
+        return Collections.emptyList();
+    }
+
+    /** 兼容旧入口：返回该版本首套签名（无则 null）。 */
+    public List<ParamDef> paramsFor(String command, String version) {
+        List<List<ParamDef>> sigs = signaturesFor(command, version);
+        return sigs.isEmpty() ? null : sigs.get(0);
     }
 }

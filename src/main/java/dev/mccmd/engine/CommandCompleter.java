@@ -112,9 +112,24 @@ public final class CommandCompleter {
         return completeParams(def, rest, version);
     }
 
+    /** 单套签名的消费结果。 */
+    private static final class WalkSig {
+        final int idx;            // 消费后停在下个待填参数下标（==params.size() 表示已到底）
+        final String itemId;      // 已消费的 item/block 参数值
+        final boolean dirty;      // 消费过程中某必填参数不匹配或 token 溢出
+        final List<String> errors;
+
+        WalkSig(int idx, String itemId, boolean dirty, List<String> errors) {
+            this.idx = idx;
+            this.itemId = itemId;
+            this.dirty = dirty;
+            this.errors = errors;
+        }
+    }
+
     private Result completeParams(CommandDef def, String rest, String version) {
-        List<ParamDef> params = commands.paramsFor(def.name, version);
-        if (params == null || params.isEmpty()) {
+        List<List<ParamDef>> sigs = commands.signaturesFor(def.name, version);
+        if (sigs.isEmpty()) {
             return new Result(Collections.emptyList(), null,
                     List.of("命令在版本 " + version + " 无参数定义"), "");
         }
@@ -139,23 +154,91 @@ public final class CommandCompleter {
             }
         }
 
-        // 顺序消费已输入 token，记录是否出错
-        List<String> errors = new ArrayList<>();
-        String consumedItemId = null;
+        // 每套签名各自消费 doneTokens，选出“干净消费完全部 token”的签名作为候选。
+        // 所有签名都消费不干净时，退化为消费最远（最接近真实意图）的一套并保留其报错。
+        List<WalkSig> outs = new ArrayList<>();
+        for (List<ParamDef> sig : sigs) {
+            outs.add(walkSig(sig, doneTokens));
+        }
+        int chosenIdx = -1;
+        for (int i = 0; i < outs.size(); i++) if (!outs.get(i).dirty) { chosenIdx = i; break; }
+        if (chosenIdx < 0) {
+            // 全部失败：取消费最远者；同深度取报错最少者；再取先声明者
+            chosenIdx = 0;
+            for (int i = 1; i < outs.size(); i++) {
+                WalkSig o = outs.get(i);
+                WalkSig c = outs.get(chosenIdx);
+                if (o.idx > c.idx || (o.idx == c.idx && o.errors.size() < c.errors.size())) {
+                    chosenIdx = i;
+                }
+            }
+            WalkSig chosen = outs.get(chosenIdx);
+            List<ParamDef> sig = sigs.get(chosenIdx);
+            List<String> errs = chosen.errors.isEmpty() ? Collections.emptyList() : chosen.errors;
+            if (chosen.idx >= sig.size()) {
+                return new Result(Collections.emptyList(), null, errs, prefix);
+            }
+            ParamDef cur = sig.get(chosen.idx);
+            return new Result(suggestFor(cur, prefix, chosen.itemId), cur.name, errs, prefix);
+        }
+
+        // 多个签名均可：合并每个签名“当前槽位”的建议（判别式补全，如 effect clear 与效果并行）。
+        List<Suggestion> merged = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        String paramName = null;
+        for (int i = 0; i < sigs.size(); i++) {
+            WalkSig o = outs.get(i);
+            if (o.dirty) continue;
+            List<ParamDef> sig = sigs.get(i);
+            ParamDef cur = (o.idx < sig.size()) ? sig.get(o.idx) : null;
+            String item = o.itemId;
+            if (cur == null) continue;
+            List<Suggestion> cand = suggestFor(cur, prefix, item);
+            // 可选参数空值（未输入、无候选）时跳到下一个能出候选的可选参数（如 setblock 省略 data → 模式）
+            if (cand.isEmpty() && prefix.isEmpty() && !cur.required) {
+                for (int j = o.idx + 1; j < sig.size(); j++) {
+                    if (sig.get(j).required) break; // 不能跳过必填
+                    List<Suggestion> next = suggestFor(sig.get(j), prefix, item);
+                    if (!next.isEmpty()) {
+                        cur = sig.get(j);
+                        cand = next;
+                        break;
+                    }
+                }
+            }
+            for (Suggestion s : cand) {
+                if (seen.add(s.insertText)) merged.add(s);
+            }
+            if (paramName == null && cur != null) paramName = cur.name;
+        }
+        if (merged.isEmpty() && paramName == null) {
+            return new Result(Collections.emptyList(), null, Collections.emptyList(), prefix);
+        }
+        return new Result(merged, paramName, Collections.emptyList(), prefix);
+    }
+
+    /**
+     * 用一套签名顺序消费已完整输入的 token。
+     * 可选参数不匹配时跳过；必填参数不匹配或 token 溢出 → 标记 dirty 并停止继续消费。
+     */
+    private static WalkSig walkSig(List<ParamDef> params, List<String> done) {
         int idx = 0;
-        for (String tok : doneTokens) {
-            while (idx < params.size() && !accepts(params.get(idx), tok)) {
+        String item = null;
+        List<String> errors = new ArrayList<>();
+        for (String tok : done) {
+            while (idx < params.size() && !paramAccepts(params.get(idx), tok)) {
                 if (params.get(idx).required) {
                     errors.add("参数「" + params.get(idx).name + "」不合法：" + tok);
-                    break;
+                    return new WalkSig(idx, item, true, errors);
                 }
                 idx++; // 可选参数未填，跳到下一个
             }
-            if (idx >= params.size()) break;
-            ParamDef cur = params.get(idx);
-            if (cur.type.equals("item") && consumedItemId == null) {
-                consumedItemId = tok;
+            if (idx >= params.size()) {
+                errors.add("多余参数：" + tok);
+                return new WalkSig(idx, item, true, errors);
             }
+            ParamDef cur = params.get(idx);
+            if (cur.type.equals("item") && item == null) item = tok;
             int step = 1;
             if (cur.type.equals("coordinate")) {
                 // 紧凑相对坐标（~13~13~13 / ~~~）按含几个坐标一次推进几步
@@ -165,29 +248,19 @@ public final class CommandCompleter {
             idx += step;
             if (idx > params.size()) idx = params.size();
         }
+        return new WalkSig(idx, item, false, errors);
+    }
 
-        if (idx >= params.size()) {
-            return new Result(Collections.emptyList(), null,
-                    errors.isEmpty() ? Collections.emptyList() : errors, prefix);
-        }
-        int curIdx = idx;
-        ParamDef cur = params.get(idx);
-        List<Suggestion> sug = suggestFor(cur, prefix, consumedItemId);
-        // 可选参数空值（未输入、无候选）时跳到下一个能出候选的可选参数（如 setblock 省略 data → 提示 模式）
-        if (sug.isEmpty() && prefix.isEmpty() && !cur.required) {
-            for (int j = idx + 1; j < params.size(); j++) {
-                if (params.get(j).required) break; // 不能跳过必填
-                List<Suggestion> cand = suggestFor(params.get(j), prefix, consumedItemId);
-                if (!cand.isEmpty()) {
-                    curIdx = j;
-                    cur = params.get(j);
-                    sug = cand;
-                    break;
-                }
+    /** 已完成 token 是否匹配某参数。enum 型严格校验 values（分支判别）；string/gamemode 等宽松。 */
+    private static boolean paramAccepts(ParamDef p, String token) {
+        if (token.isEmpty()) return false;
+        if ("enum".equals(p.type) && p.values != null && !p.values.isEmpty()) {
+            for (String v : p.values) {
+                if (v.equalsIgnoreCase(token)) return true;
             }
+            return false;
         }
-        return new Result(sug, cur.name,
-                errors.isEmpty() ? Collections.emptyList() : errors, prefix);
+        return accepts(p, token);
     }
 
     /** 统计无空格坐标串里包含的坐标个数（~13~13~13=3，~~~=3，~5=1，5=1）；非法返回 0。 */

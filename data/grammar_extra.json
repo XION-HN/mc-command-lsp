@@ -1,282 +1,1216 @@
 {
-  "commands": {
-    "setblock": {
-      "name": "setblock", "description_cn": "在指定位置放置方块", "description_en": "Set a block",
-      "overloads": [ { "versions": ["1.16.220", "1.21.60"], "params": [
-        { "name": "x", "type": "coordinate", "required": true },
-        { "name": "y", "type": "coordinate", "required": true },
-        { "name": "z", "type": "coordinate", "required": true },
-        { "name": "方块", "type": "block", "required": true },
-        { "name": "数据值", "type": "int", "required": false },
-        { "name": "模式", "type": "enum", "values": ["destroy", "keep", "replace"], "required": false }
-      ] } ]
-    },
-    "fill": {
-      "name": "fill", "description_cn": "用方块填充区域", "description_en": "Fill a region",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "x1", "type": "coordinate", "required": true },
-        { "name": "y1", "type": "coordinate", "required": true },
-        { "name": "z1", "type": "coordinate", "required": true },
-        { "name": "x2", "type": "coordinate", "required": true },
-        { "name": "y2", "type": "coordinate", "required": true },
-        { "name": "z2", "type": "coordinate", "required": true },
-        { "name": "方块", "type": "block", "required": true },
-        { "name": "数据值", "type": "int", "required": false },
-        { "name": "模式", "type": "enum", "values": ["destroy", "hollow", "keep", "outline", "replace"], "required": false },
-        { "name": "替换方块", "type": "block", "required": false }
-      ] } ]
-    },
-    "time": {
-      "name": "time", "description_cn": "查询/设置/增减时间", "description_en": "Time",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "操作", "type": "enum", "values": ["add", "set", "query"], "required": true },
-        { "name": "时间", "type": "string", "required": false, "description_cn": "tick 数或 day/noon/night" }
-      ] } ]
-    },
-    "effect": {
-      "name": "effect", "description_cn": "状态效果", "description_en": "Effects",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "子命令", "type": "enum", "values": ["give", "clear"], "required": true },
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "效果", "type": "enum", "required": false,
-          "values": ["speed", "slowness", "haste", "mining_fatigue", "strength", "instant_health",
-                     "instant_damage", "jump_boost", "nausea", "regeneration", "resistance",
-                     "fire_resistance", "water_breathing", "invisibility", "blindness",
-                     "night_vision", "hunger", "weakness", "poison", "wither", "health_boost",
-                     "absorption", "saturation", "glowing", "levitation", "luck", "unluck",
-                     "slow_falling", "conduit_power", "dolphins_grace", "bad_omen",
-                     "hero_of_the_village", "darkness"],
-          "description_cn": "状态效果 id" },
-        { "name": "秒数", "type": "int", "required": false },
-        { "name": "强度", "type": "int", "required": false }
-      ] } ]
-    },
-    "clear": {
-      "name": "clear", "description_cn": "清空玩家物品", "description_en": "Clear items",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": false },
-        { "name": "物品", "type": "item", "required": false },
-        { "name": "数据值", "type": "int", "required": false },
-        { "name": "数量", "type": "int", "required": false }
-      ] } ]
-    },
-    "kill": {
-      "name": "kill", "description_cn": "击杀实体", "description_en": "Kill",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": false }
-      ] } ]
-    },
-    "say": {
-      "name": "say", "description_cn": "发送消息", "description_en": "Say",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "文本", "type": "text", "required": true }
-      ] } ]
-    },
-    "tell": {
-      "name": "tell", "description_cn": "私聊玩家", "description_en": "Tell",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "文本", "type": "text", "required": true }
-      ] } ]
-    },
-    "gamerule": {
-      "name": "gamerule", "description_cn": "设置游戏规则", "description_en": "Game rules",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "规则", "type": "enum", "values": ["showcoordinates", "dodaylightcycle", "doweathercycle", "keepinventory", "mobgriefing", "randomtickspeed", "commandblocksenabled", "naturalregeneration", "tntexplodes", "falldamage", "firedamage", "pvp", "domobspawning", "doentitydrops", "dofiretick"], "required": true },
-        { "name": "值", "type": "string", "required": false }
-      ] } ]
-    },
-    "difficulty": {
-      "name": "difficulty", "description_cn": "难度", "description_en": "Difficulty",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "难度", "type": "enum", "values": ["peaceful", "easy", "normal", "hard"], "required": false }
-      ] } ]
-    },
-    "enchant": {
-      "name": "enchant", "description_cn": "附魔", "description_en": "Enchant",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "附魔", "type": "string", "required": true, "description_cn": "如 sharpness/protection/knockback" },
-        { "name": "等级", "type": "int", "required": false }
-      ] } ]
-    },
-    "xp": {
-      "name": "xp", "description_cn": "经验", "description_en": "Experience",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "数量", "type": "string", "required": true, "description_cn": "数值或带 L(如 5L)" },
-        { "name": "目标", "type": "player", "required": false }
-      ] } ]
-    },
-    "playsound": {
-      "name": "playsound", "description_cn": "播放音效", "description_en": "Play sound",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "音效", "type": "string", "required": true, "description_cn": "如 mob.cow.say/note.harp" },
-        { "name": "目标", "type": "player", "required": false },
-        { "name": "x", "type": "coordinate", "required": false },
-        { "name": "y", "type": "coordinate", "required": false },
-        { "name": "z", "type": "coordinate", "required": false },
-        { "name": "音量", "type": "float", "required": false },
-        { "name": "音高", "type": "float", "required": false }
-      ] } ]
-    },
-    "stopsound": {
-      "name": "stopsound", "description_cn": "停止音效", "description_en": "Stop sound",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "音效", "type": "string", "required": false }
-      ] } ]
-    },
-    "tag": {
-      "name": "tag", "description_cn": "标签管理", "description_en": "Tags",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "操作", "type": "enum", "values": ["add", "remove", "list"], "required": true },
-        { "name": "标签", "type": "string", "required": false }
-      ] } ]
-    },
-    "scoreboard": {
-      "name": "scoreboard", "description_cn": "记分板", "description_en": "Scoreboard",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "类别", "type": "enum", "values": ["objectives", "players"], "required": true },
-        { "name": "操作", "type": "enum", "values": ["add", "list", "remove", "set", "reset", "get"], "required": false },
-        { "name": "记分项", "type": "string", "required": false },
-        { "name": "准则", "type": "string", "required": false, "description_cn": "objective add 的准则如 dummy" },
-        { "name": "显示名", "type": "string", "required": false }
-      ] } ]
-    },
-    "team": {
-      "name": "team", "description_cn": "队伍管理", "description_en": "Teams",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "操作", "type": "enum", "values": ["add", "remove", "empty", "join", "leave", "list"], "required": true },
-        { "name": "队伍", "type": "string", "required": false },
-        { "name": "成员", "type": "player", "required": false }
-      ] } ]
-    },
-    "clone": {
-      "name": "clone", "description_cn": "复制区域方块", "description_en": "Clone blocks",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "x1", "type": "coordinate", "required": true },
-        { "name": "y1", "type": "coordinate", "required": true },
-        { "name": "z1", "type": "coordinate", "required": true },
-        { "name": "x2", "type": "coordinate", "required": true },
-        { "name": "y2", "type": "coordinate", "required": true },
-        { "name": "z2", "type": "coordinate", "required": true },
-        { "name": "x3", "type": "coordinate", "required": true },
-        { "name": "y3", "type": "coordinate", "required": true },
-        { "name": "z3", "type": "coordinate", "required": true },
-        { "name": "遮罩", "type": "enum", "values": ["replace", "masked", "filtered"], "required": false },
-        { "name": "过滤方块", "type": "block", "required": false }
-      ] } ]
-    },
-    "locate": {
-      "name": "locate", "description_cn": "查找结构/地物", "description_en": "Locate",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "类型", "type": "enum", "values": ["structure", "biome", "poi"], "required": false },
-        { "name": "名称", "type": "string", "required": false }
-      ] } ]
-    },
-    "tp": {
-      "name": "tp", "description_cn": "传送", "description_en": "Teleport",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "x", "type": "coordinate", "required": false },
-        { "name": "y", "type": "coordinate", "required": false },
-        { "name": "z", "type": "coordinate", "required": false },
-        { "name": "目标2", "type": "player", "required": false }
-      ] } ]
-    },
-    "weather": {
-      "name": "weather", "description_cn": "设置天气", "description_en": "Weather",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "天气", "type": "enum", "values": ["clear", "rain", "thunder"], "required": true },
-        { "name": "持续时间", "type": "int", "required": false }
-      ] } ]
-    },
-    "summon": {
-      "name": "summon", "description_cn": "生成实体", "description_en": "Summon",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "实体", "type": "enum", "required": true,
-          "values": ["armor_stand", "arrow", "chicken", "cow", "pig", "sheep", "rabbit",
-                     "zombie", "skeleton", "creeper", "enderman", "spider", "wolf",
-                     "ocelot", "cat", "horse", "villager", "wither_skeleton", "stray",
-                     "husk", "drowned", "phantom", "shulker", "guardian",
-                     "elder_guardian", "slime", "magma_cube", "blaze", "ghast",
-                     "wither", "ender_dragon", "item", "xp_orb", "tnt", "minecart",
-                     "boat", "item_frame", "painting", "area_effect_cloud",
-                     "villager_v2", "allay", "goat", "axolotl", "glow_squid",
-                     "warden", "frog", "tadpole"],
-          "description_cn": "实体 id" },
-        { "name": "x", "type": "coordinate", "required": false },
-        { "name": "y", "type": "coordinate", "required": false },
-        { "name": "z", "type": "coordinate", "required": false }
-      ] } ]
-    },
-    "title": {
-      "name": "title", "description_cn": "标题", "description_en": "Title",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "动作", "type": "enum", "values": ["clear", "reset", "title", "subtitle", "actionbar"], "required": true },
-        { "name": "文本", "type": "string", "required": false }
-      ] } ]
-    },
-    "defaultgamemode": {
-      "name": "defaultgamemode", "description_cn": "默认游戏模式", "description_en": "Default gamemode",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "模式", "type": "enum", "values": ["survival", "creative", "adventure", "spectator"], "required": true }
-      ] } ]
-    },
-    "gamemode": {
-      "name": "gamemode", "description_cn": "设置游戏模式", "description_en": "Gamemode",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "模式", "type": "enum", "values": ["survival", "creative", "adventure", "spectator"], "required": true },
-        { "name": "目标", "type": "player", "required": false }
-      ] } ]
-    },
-    "list": {
-      "name": "list", "description_cn": "在线玩家列表", "description_en": "List players",
-      "overloads": [ { "versions": "*", "params": [] } ]
-    },
-    "kick": {
-      "name": "kick", "description_cn": "踢出玩家", "description_en": "Kick",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true },
-        { "name": "原因", "type": "text", "required": false }
-      ] } ]
-    },
-    "op": {
-      "name": "op", "description_cn": "设为管理员", "description_en": "Op",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true }
-      ] } ]
-    },
-    "deop": {
-      "name": "deop", "description_cn": "取消管理员", "description_en": "Deop",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": true }
-      ] } ]
-    },
-    "setworldspawn": {
-      "name": "setworldspawn", "description_cn": "设置世界出生点", "description_en": "Set world spawn",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "x", "type": "coordinate", "required": false },
-        { "name": "y", "type": "coordinate", "required": false },
-        { "name": "z", "type": "coordinate", "required": false }
-      ] } ]
-    },
-    "spawnpoint": {
-      "name": "spawnpoint", "description_cn": "设置玩家出生点", "description_en": "Spawn point",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "目标", "type": "player", "required": false },
-        { "name": "x", "type": "coordinate", "required": false },
-        { "name": "y", "type": "coordinate", "required": false },
-        { "name": "z", "type": "coordinate", "required": false }
-      ] } ]
-    },
-    "function": {
-      "name": "function", "description_cn": "运行函数", "description_en": "Run function",
-      "overloads": [ { "versions": "*", "params": [
-        { "name": "函数路径", "type": "string", "required": true, "description_cn": "如 namespace:main" }
-      ] } ]
+ "commands": {
+  "setblock": {
+   "name": "setblock",
+   "description_cn": "在指定位置放置方块",
+   "description_en": "Set a block",
+   "overloads": [
+    {
+     "versions": [
+      "1.16.220",
+      "1.21.60"
+     ],
+     "params": [
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "方块",
+       "type": "block",
+       "required": true
+      },
+      {
+       "name": "数据值",
+       "type": "int",
+       "required": false
+      },
+      {
+       "name": "模式",
+       "type": "enum",
+       "values": [
+        "destroy",
+        "keep",
+        "replace"
+       ],
+       "required": false
+      }
+     ]
     }
+   ]
+  },
+  "fill": {
+   "name": "fill",
+   "description_cn": "用方块填充区域",
+   "description_en": "Fill a region",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "x1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "x2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "方块",
+       "type": "block",
+       "required": true
+      },
+      {
+       "name": "数据值",
+       "type": "int",
+       "required": false
+      },
+      {
+       "name": "模式",
+       "type": "enum",
+       "values": [
+        "destroy",
+        "hollow",
+        "keep",
+        "outline",
+        "replace"
+       ],
+       "required": false
+      },
+      {
+       "name": "替换方块",
+       "type": "block",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "time": {
+   "name": "time",
+   "description_cn": "查询/设置/增减时间",
+   "description_en": "Time",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "操作",
+       "type": "enum",
+       "values": [
+        "add",
+        "set",
+        "query"
+       ],
+       "required": true
+      },
+      {
+       "name": "时间",
+       "type": "string",
+       "required": false,
+       "description_cn": "tick 数或 day/noon/night"
+      }
+     ]
+    }
+   ]
+  },
+  "effect": {
+   "name": "effect",
+   "description_cn": "状态效果",
+   "description_en": "Effects",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true,
+       "description_cn": "目标选择器或玩家名"
+      },
+      {
+       "name": "动作",
+       "type": "enum",
+       "values": [
+        "clear"
+       ],
+       "required": true,
+       "description_cn": "清除目标全部效果"
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true,
+       "description_cn": "目标选择器或玩家名"
+      },
+      {
+       "name": "效果",
+       "type": "enum",
+       "values": [
+        "speed",
+        "slowness",
+        "haste",
+        "mining_fatigue",
+        "strength",
+        "instant_health",
+        "instant_damage",
+        "jump_boost",
+        "nausea",
+        "regeneration",
+        "resistance",
+        "fire_resistance",
+        "water_breathing",
+        "invisibility",
+        "blindness",
+        "night_vision",
+        "hunger",
+        "weakness",
+        "poison",
+        "wither",
+        "health_boost",
+        "absorption",
+        "saturation",
+        "glowing",
+        "levitation",
+        "luck",
+        "unluck",
+        "slow_falling",
+        "conduit_power",
+        "dolphins_grace",
+        "bad_omen",
+        "hero_of_the_village",
+        "darkness"
+       ],
+       "required": true,
+       "description_cn": "状态效果 id"
+      },
+      {
+       "name": "秒数",
+       "type": "int",
+       "required": false,
+       "description_cn": "持续 tick 数，省略为默认"
+      },
+      {
+       "name": "强度",
+       "type": "int",
+       "required": false,
+       "description_cn": "效果等级，0 为 1 级"
+      },
+      {
+       "name": "隐藏粒子",
+       "type": "enum",
+       "values": [
+        "true",
+        "false"
+       ],
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "clear": {
+   "name": "clear",
+   "description_cn": "清空玩家物品",
+   "description_en": "Clear items",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": false
+      },
+      {
+       "name": "物品",
+       "type": "item",
+       "required": false
+      },
+      {
+       "name": "数据值",
+       "type": "int",
+       "required": false
+      },
+      {
+       "name": "数量",
+       "type": "int",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "kill": {
+   "name": "kill",
+   "description_cn": "击杀实体",
+   "description_en": "Kill",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "say": {
+   "name": "say",
+   "description_cn": "发送消息",
+   "description_en": "Say",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "文本",
+       "type": "text",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "tell": {
+   "name": "tell",
+   "description_cn": "私聊玩家",
+   "description_en": "Tell",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "文本",
+       "type": "text",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "gamerule": {
+   "name": "gamerule",
+   "description_cn": "设置游戏规则",
+   "description_en": "Game rules",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "规则",
+       "type": "enum",
+       "values": [
+        "showcoordinates",
+        "dodaylightcycle",
+        "doweathercycle",
+        "keepinventory",
+        "mobgriefing",
+        "randomtickspeed",
+        "commandblocksenabled",
+        "naturalregeneration",
+        "tntexplodes",
+        "falldamage",
+        "firedamage",
+        "pvp",
+        "domobspawning",
+        "doentitydrops",
+        "dofiretick"
+       ],
+       "required": true
+      },
+      {
+       "name": "值",
+       "type": "string",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "difficulty": {
+   "name": "difficulty",
+   "description_cn": "难度",
+   "description_en": "Difficulty",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "难度",
+       "type": "enum",
+       "values": [
+        "peaceful",
+        "easy",
+        "normal",
+        "hard"
+       ],
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "enchant": {
+   "name": "enchant",
+   "description_cn": "附魔",
+   "description_en": "Enchant",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "附魔",
+       "type": "string",
+       "required": true,
+       "description_cn": "如 sharpness/protection/knockback"
+      },
+      {
+       "name": "等级",
+       "type": "int",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "xp": {
+   "name": "xp",
+   "description_cn": "经验",
+   "description_en": "Experience",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "数量",
+       "type": "string",
+       "required": true,
+       "description_cn": "数值或带 L(如 5L)"
+      },
+      {
+       "name": "目标",
+       "type": "player",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "playsound": {
+   "name": "playsound",
+   "description_cn": "播放音效",
+   "description_en": "Play sound",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "音效",
+       "type": "string",
+       "required": true,
+       "description_cn": "如 mob.cow.say/note.harp"
+      },
+      {
+       "name": "目标",
+       "type": "player",
+       "required": false
+      },
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "音量",
+       "type": "float",
+       "required": false
+      },
+      {
+       "name": "音高",
+       "type": "float",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "stopsound": {
+   "name": "stopsound",
+   "description_cn": "停止音效",
+   "description_en": "Stop sound",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "音效",
+       "type": "string",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "tag": {
+   "name": "tag",
+   "description_cn": "标签管理",
+   "description_en": "Tags",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "操作",
+       "type": "enum",
+       "values": [
+        "add",
+        "remove",
+        "list"
+       ],
+       "required": true
+      },
+      {
+       "name": "标签",
+       "type": "string",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "scoreboard": {
+   "name": "scoreboard",
+   "description_cn": "记分板",
+   "description_en": "Scoreboard",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "类别",
+       "type": "enum",
+       "values": [
+        "objectives"
+       ],
+       "required": true
+      },
+      {
+       "name": "操作",
+       "type": "enum",
+       "values": [
+        "add"
+       ],
+       "required": true
+      },
+      {
+       "name": "记分项",
+       "type": "string",
+       "required": true
+      },
+      {
+       "name": "准则",
+       "type": "enum",
+       "values": [
+        "dummy"
+       ],
+       "required": true,
+       "description_cn": "Bedrock 通常固定 dummy"
+      },
+      {
+       "name": "显示名",
+       "type": "string",
+       "required": false
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "类别",
+       "type": "enum",
+       "values": [
+        "objectives"
+       ],
+       "required": true
+      },
+      {
+       "name": "操作",
+       "type": "enum",
+       "values": [
+        "remove",
+        "list"
+       ],
+       "required": true
+      },
+      {
+       "name": "记分项",
+       "type": "string",
+       "required": false
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "类别",
+       "type": "enum",
+       "values": [
+        "players"
+       ],
+       "required": true
+      },
+      {
+       "name": "操作",
+       "type": "enum",
+       "values": [
+        "add",
+        "remove",
+        "set",
+        "reset",
+        "get",
+        "list"
+       ],
+       "required": true
+      },
+      {
+       "name": "玩家",
+       "type": "player",
+       "required": false,
+       "description_cn": "目标玩家，list 可省略"
+      },
+      {
+       "name": "记分项",
+       "type": "string",
+       "required": false
+      },
+      {
+       "name": "数值",
+       "type": "int",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "team": {
+   "name": "team",
+   "description_cn": "队伍管理",
+   "description_en": "Teams",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "操作",
+       "type": "enum",
+       "values": [
+        "add",
+        "remove",
+        "empty",
+        "join",
+        "leave",
+        "list"
+       ],
+       "required": true
+      },
+      {
+       "name": "队伍",
+       "type": "string",
+       "required": false
+      },
+      {
+       "name": "成员",
+       "type": "player",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "clone": {
+   "name": "clone",
+   "description_cn": "复制区域方块",
+   "description_en": "Clone blocks",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "x1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z1",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "x2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z2",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "x3",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y3",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z3",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "遮罩",
+       "type": "enum",
+       "values": [
+        "replace",
+        "masked",
+        "filtered"
+       ],
+       "required": false
+      },
+      {
+       "name": "过滤方块",
+       "type": "block",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "locate": {
+   "name": "locate",
+   "description_cn": "查找结构/地物",
+   "description_en": "Locate",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "类型",
+       "type": "enum",
+       "values": [
+        "structure",
+        "biome",
+        "poi"
+       ],
+       "required": false
+      },
+      {
+       "name": "名称",
+       "type": "string",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "tp": {
+   "name": "tp",
+   "description_cn": "传送",
+   "description_en": "Teleport",
+   "overloads": [
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true,
+       "description_cn": "被传送者"
+      },
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": true
+      },
+      {
+       "name": "y旋转",
+       "type": "float",
+       "required": false
+      },
+      {
+       "name": "x旋转",
+       "type": "float",
+       "required": false
+      }
+     ]
+    },
+    {
+     "versions": [
+      "*"
+     ],
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true,
+       "description_cn": "被传送者"
+      },
+      {
+       "name": "目标2",
+       "type": "player",
+       "required": true,
+       "description_cn": "传送到该玩家/实体处"
+      }
+     ]
+    }
+   ]
+  },
+  "weather": {
+   "name": "weather",
+   "description_cn": "设置天气",
+   "description_en": "Weather",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "天气",
+       "type": "enum",
+       "values": [
+        "clear",
+        "rain",
+        "thunder"
+       ],
+       "required": true
+      },
+      {
+       "name": "持续时间",
+       "type": "int",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "summon": {
+   "name": "summon",
+   "description_cn": "生成实体",
+   "description_en": "Summon",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "实体",
+       "type": "enum",
+       "required": true,
+       "values": [
+        "armor_stand",
+        "arrow",
+        "chicken",
+        "cow",
+        "pig",
+        "sheep",
+        "rabbit",
+        "zombie",
+        "skeleton",
+        "creeper",
+        "enderman",
+        "spider",
+        "wolf",
+        "ocelot",
+        "cat",
+        "horse",
+        "villager",
+        "wither_skeleton",
+        "stray",
+        "husk",
+        "drowned",
+        "phantom",
+        "shulker",
+        "guardian",
+        "elder_guardian",
+        "slime",
+        "magma_cube",
+        "blaze",
+        "ghast",
+        "wither",
+        "ender_dragon",
+        "item",
+        "xp_orb",
+        "tnt",
+        "minecart",
+        "boat",
+        "item_frame",
+        "painting",
+        "area_effect_cloud",
+        "villager_v2",
+        "allay",
+        "goat",
+        "axolotl",
+        "glow_squid",
+        "warden",
+        "frog",
+        "tadpole"
+       ],
+       "description_cn": "实体 id"
+      },
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "title": {
+   "name": "title",
+   "description_cn": "标题",
+   "description_en": "Title",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "动作",
+       "type": "enum",
+       "values": [
+        "clear",
+        "reset",
+        "title",
+        "subtitle",
+        "actionbar"
+       ],
+       "required": true
+      },
+      {
+       "name": "文本",
+       "type": "string",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "defaultgamemode": {
+   "name": "defaultgamemode",
+   "description_cn": "默认游戏模式",
+   "description_en": "Default gamemode",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "模式",
+       "type": "enum",
+       "values": [
+        "survival",
+        "creative",
+        "adventure",
+        "spectator"
+       ],
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "gamemode": {
+   "name": "gamemode",
+   "description_cn": "设置游戏模式",
+   "description_en": "Gamemode",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "模式",
+       "type": "enum",
+       "values": [
+        "survival",
+        "creative",
+        "adventure",
+        "spectator"
+       ],
+       "required": true
+      },
+      {
+       "name": "目标",
+       "type": "player",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "list": {
+   "name": "list",
+   "description_cn": "在线玩家列表",
+   "description_en": "List players",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": []
+    }
+   ]
+  },
+  "kick": {
+   "name": "kick",
+   "description_cn": "踢出玩家",
+   "description_en": "Kick",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      },
+      {
+       "name": "原因",
+       "type": "text",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "op": {
+   "name": "op",
+   "description_cn": "设为管理员",
+   "description_en": "Op",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "deop": {
+   "name": "deop",
+   "description_cn": "取消管理员",
+   "description_en": "Deop",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": true
+      }
+     ]
+    }
+   ]
+  },
+  "setworldspawn": {
+   "name": "setworldspawn",
+   "description_cn": "设置世界出生点",
+   "description_en": "Set world spawn",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "spawnpoint": {
+   "name": "spawnpoint",
+   "description_cn": "设置玩家出生点",
+   "description_en": "Spawn point",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "目标",
+       "type": "player",
+       "required": false
+      },
+      {
+       "name": "x",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "y",
+       "type": "coordinate",
+       "required": false
+      },
+      {
+       "name": "z",
+       "type": "coordinate",
+       "required": false
+      }
+     ]
+    }
+   ]
+  },
+  "function": {
+   "name": "function",
+   "description_cn": "运行函数",
+   "description_en": "Run function",
+   "overloads": [
+    {
+     "versions": "*",
+     "params": [
+      {
+       "name": "函数路径",
+       "type": "string",
+       "required": true,
+       "description_cn": "如 namespace:main"
+      }
+     ]
+    }
+   ]
   }
+ }
 }

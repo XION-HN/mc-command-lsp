@@ -135,4 +135,80 @@ public class CommandCompleterTest {
         assertTrue(r.suggestions.stream().anyMatch(s -> "destroy".equals(s.insertText)));
         assertTrue(r.errors.isEmpty());
     }
+
+    // ---- M5：多签名 overload 回溯 ----
+
+    @Test
+    public void effect_clearOverload_disambiguatesByToken() {
+        // 输入 clear 前缀 → 命中 clear 字面量候选；效果签名不会给出（clear 不在效果表）
+        Result r = cc.complete("/effect @p cl", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "clear".equals(s.insertText)));
+        // 输入已完整 clear + 空格 → clear 签名到底，无后续建议且无报错
+        Result r2 = cc.complete("/effect @p clear ", "1.21.60");
+        assertTrue(r2.errors.isEmpty());
+    }
+
+    @Test
+    public void effect_effectOverload_suggestsEffectIds() {
+        Result r = cc.complete("/effect @p ", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "clear".equals(s.insertText)));
+        assertTrue("应含效果 id 候选",
+                r.suggestions.stream().anyMatch(s -> "speed".equals(s.insertText)));
+    }
+
+    @Test
+    public void effect_effectOverload_partialEffectPrefix() {
+        Result r = cc.complete("/effect @p spe", "1.21.60");
+        assertTrue(r.suggestions.stream().anyMatch(s -> "speed".equals(s.insertText)));
+        assertTrue(r.suggestions.stream().noneMatch(s -> "clear".equals(s.insertText)));
+    }
+
+    @Test
+    public void effect_fullGive_withDuration() {
+        // effect <player> <effect> 30 1 true
+        Result r = cc.complete("/effect @p speed 30 1 tr", "1.21.60");
+        assertTrue("隐藏粒子应建议 true",
+                r.suggestions.stream().anyMatch(s -> "true".equals(s.insertText)));
+        assertTrue(r.errors.isEmpty());
+    }
+
+    @Test
+    public void tp_coordsOverload_consumesThreeCoords() {
+        Result r = cc.complete("/tp @p 10 20 30", "1.21.60");
+        assertTrue("坐标签名应无报错", r.errors.isEmpty());
+    }
+
+    @Test
+    public void tp_playerOverload_disambiguatesFromCoords() {
+        // 第 3 个 token 是玩家名而非坐标 → 命中「tp <p> <p>」签名
+        Result r = cc.complete("/tp @p Notch", "1.21.60");
+        assertTrue(r.errors.isEmpty());
+        // 坐标签名应因 Notch 不是坐标而失效，不该有 x 相关报错
+    }
+
+    @Test
+    public void tp_partialCoords_midCoordinate() {
+        Result r = cc.complete("/tp @p ~ 10", "1.21.60");
+        assertTrue(r.errors.isEmpty());
+    }
+
+    @Test
+    public void scoreboard_objectivesAdd_fullPath() {
+        Result r = cc.complete("/scoreboard objectives add foo dummy", "1.21.60");
+        assertTrue(r.errors.isEmpty());
+    }
+
+    @Test
+    public void scoreboard_playersReset_suggestsPlayer() {
+        Result r = cc.complete("/scoreboard players res", "1.21.60");
+        assertTrue("players reset 应给出操作候选",
+                r.suggestions.stream().anyMatch(s -> "reset".equals(s.insertText)));
+    }
+
+    @Test
+    public void scoreboard_criteriaDummyEnum() {
+        Result r = cc.complete("/scoreboard objectives add foo dum", "1.21.60");
+        assertTrue("准则应建议 dummy",
+                r.suggestions.stream().anyMatch(s -> "dummy".equals(s.insertText)));
+    }
 }
