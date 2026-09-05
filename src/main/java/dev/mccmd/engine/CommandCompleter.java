@@ -119,12 +119,14 @@ public final class CommandCompleter {
         final String itemId;      // 已消费的 item/block 参数值
         final boolean dirty;      // 消费过程中某必填参数不匹配或 token 溢出
         final List<String> errors;
+        final int failOrd;        // 触发 dirty 的 done token 序号（-1 = 干净）
 
-        WalkSig(int idx, String itemId, boolean dirty, List<String> errors) {
+        WalkSig(int idx, String itemId, boolean dirty, List<String> errors, int failOrd) {
             this.idx = idx;
             this.itemId = itemId;
             this.dirty = dirty;
             this.errors = errors;
+            this.failOrd = failOrd;
         }
     }
 
@@ -226,17 +228,18 @@ public final class CommandCompleter {
         int idx = 0;
         String item = null;
         List<String> errors = new ArrayList<>();
+        int ord = 0;
         for (String tok : done) {
             while (idx < params.size() && !paramAccepts(params.get(idx), tok)) {
                 if (params.get(idx).required) {
                     errors.add("参数「" + params.get(idx).name + "」不合法：" + tok);
-                    return new WalkSig(idx, item, true, errors);
+                    return new WalkSig(idx, item, true, errors, ord);
                 }
                 idx++; // 可选参数未填，跳到下一个
             }
             if (idx >= params.size()) {
                 errors.add("多余参数：" + tok);
-                return new WalkSig(idx, item, true, errors);
+                return new WalkSig(idx, item, true, errors, ord);
             }
             ParamDef cur = params.get(idx);
             if (cur.type.equals("item") && item == null) item = tok;
@@ -248,8 +251,9 @@ public final class CommandCompleter {
             }
             idx += step;
             if (idx > params.size()) idx = params.size();
+            ord++;
         }
-        return new WalkSig(idx, item, false, errors);
+        return new WalkSig(idx, item, false, errors, -1);
     }
 
     /** 已完成 token 是否匹配某参数。enum 型严格校验 values（分支判别）；string/gamemode 等宽松。 */
@@ -629,6 +633,16 @@ public final class CommandCompleter {
                 out.add(new Suggestion(s, s, "选择器", "selector"));
             }
         }
+        // 已完整输入某个基选择器且尚未开括号时，提示可追加可选参数 [ ]。
+        // 如 /give @p @s → 给 @s 与 @s[ 两个候选，后者展开写 type=... 等。
+        String base = null;
+        for (String s : List.of("@a", "@p", "@e", "@r", "@s")) {
+            if (s.equalsIgnoreCase(lower)) { base = s; break; }
+        }
+        if (base != null) {
+            out.add(new Suggestion(base + "[", base + "[可选参数]",
+                    "追加可选参数，如 " + base + "[type=zombie]", "selector"));
+        }
         return out;
     }
 
@@ -728,4 +742,142 @@ public final class CommandCompleter {
             "name=", "type=", "tag=", "family=", "x=", "y=", "z=",
             "dx=", "dy=", "dz=", "r=", "rm=", "l=", "lm=", "c=", "m=",
             "scores=", "gamemode=");
+
+    // ---- 逐行语法诊断（供 LSP publishDiagnostics 用）----
+
+    /** 单行诊断结果：出错区间的起止列（0 基，含行内字符；无 / 前缀）。 */
+    public static final class LineDiag {
+        public final int startCol;
+        public final int endCol;
+        public final String message;
+        public LineDiag(int startCol, int endCol, String message) {
+            this.startCol = startCol;
+            this.endCol = endCol;
+            this.message = message;
+        }
+    }
+
+    /**
+     * 对一整行做命令语法诊断（区别于补全：不保留“光标前缀”，整行视为已完成输入）。
+     * 逐行检查，仅报告该行自身错误——未知命令、必填参数非法、多余参数。
+     * 返回空表表示该行无语法错误。
+     */
+    public List<LineDiag> diagnose(String line, String version) {
+        if (line == null) return Collections.emptyList();
+        String text = line.trim();
+        if (text.isEmpty() || text.startsWith("#") || text.startsWith("//")) {
+            return Collections.emptyList();
+        }
+        List<LineDiag> out = new ArrayList<>();
+        // line 内的列 = 前导空白长度
+        int lead = 0;
+        while (lead < line.length() && (line.charAt(lead) == ' ' || line.charAt(lead) == '\t')) lead++;
+        String head = text.startsWith("/") ? text.substring(1) : text;
+        List<String> all = splitTokens(head);
+        if (all.isEmpty()) return Collections.emptyList();
+        String cmd = all.get(0);
+        int cmdCol = lead + (text.startsWith("/") ? 1 : 0);
+
+        CommandDef def = commands.command(cmd);
+        if (def == null) {
+            // 若该命令名是某已知命令的前缀且行只有命令名（可能还在输入），不报未知命令
+            boolean prefixOfKnown = false;
+            for (String known : commands.commands().keySet()) {
+                if (known.toLowerCase().startsWith(cmd.toLowerCase())
+                        && commands.paramsFor(known, version) != null) {
+                    prefixOfKnown = true;
+                    break;
+                }
+            }
+            if (!prefixOfKnown) {
+                out.add(new LineDiag(cmdCol, cmdCol + cmd.length(), "未知命令：" + cmd));
+            }
+            return out;
+        }
+
+        if (all.size() == 1) {
+            return out; // 只有命令名，无参数可查
+        }
+
+        List<String> rest = all.subList(1, all.size());
+        if ("execute".equals(def.name)) {
+            return diagnoseExecute(text, lead, version);
+        }
+
+        List<List<ParamDef>> sigs = commands.signaturesFor(def.name, version);
+        if (sigs.isEmpty()) return out;
+
+        // 每套签名各自全量消费 rest；存在一套干净消费 → 无错误；
+        // 否则取消费最远（failOrd 最大）的一套，报告其首个失败 token。
+        WalkSig best = null;
+        for (List<ParamDef> sig : sigs) {
+            WalkSig w = walkSig(sig, rest);
+            if (!w.dirty) return out;
+            if (best == null || w.failOrd > best.failOrd) {
+                best = w;
+            }
+        }
+        if (best == null || best.errors.isEmpty()) return out;
+
+        // 定位 rest 中各 token 的列：从 text 中逐词扫描
+        int scanFrom = text.indexOf(rest.get(0));
+        if (scanFrom < 0) scanFrom = cmdCol + cmd.length() + 1;
+        List<int[]> cols = new ArrayList<>(rest.size());
+        int idx = scanFrom;
+        for (String tok : rest) {
+            int start = text.indexOf(tok, idx);
+            if (start < 0) start = idx;
+            cols.add(new int[]{start, start + tok.length()});
+            idx = start + tok.length();
+        }
+        int ord = best.failOrd;
+        int[] c = (ord >= 0 && ord < cols.size())
+                ? cols.get(ord) : new int[]{cmdCol + cmd.length() + 1, text.length()};
+        out.add(new LineDiag(c[0], c[1], best.errors.get(0)));
+        return out;
+    }
+
+    /** execute 链的逐行诊断：解析失败（坏 token/未知子命令）时报错，否则空。 */
+    private List<LineDiag> diagnoseExecute(String text, int lead, String version) {
+        ExecGrammar grammar = commands.execGrammarFor(version);
+        if (grammar == null || grammar.clauses.isEmpty()) return Collections.emptyList();
+
+        String head = text.startsWith("/") ? text.substring(1) : text;
+        // execute 之后的部分
+        String body = head.length() > "execute".length()
+                ? head.substring("execute".length()) : "";
+        List<String> toks = new ArrayList<>();
+        boolean trailing = body.endsWith(" ");
+        String b = trailing ? body.substring(0, body.length() - 1) : body;
+        if (b != null && !b.isEmpty()) {
+            List<String> a = splitTokens(b);
+            if (trailing) {
+                toks = a;
+            } else if (!a.isEmpty()) {
+                toks = a.subList(0, a.size() - 1);
+            }
+        }
+        // run 之后交给任意命令诊断（此处只检测 run 前链是否可解析）
+        int runIdx = -1;
+        for (int i = 0; i < toks.size(); i++) {
+            if ("run".equalsIgnoreCase(toks.get(i))) { runIdx = i; break; }
+        }
+        if (runIdx >= 0) toks = toks.subList(0, runIdx);
+        if (toks.isEmpty()) return Collections.emptyList();
+
+        List<ExecNode> states = new ArrayList<>();
+        states.add(null);
+        for (String tok : toks) {
+            List<ExecNode> next = new ArrayList<>();
+            for (ExecNode st : states) stepExec(st, tok, grammar, next);
+            if (next.isEmpty()) {
+                int start = text.indexOf(tok);
+                if (start < 0) start = lead;
+                return java.util.List.of(new LineDiag(start,
+                        start + tok.length(), "execute 子命令无法识别：" + tok));
+            }
+            states = next;
+        }
+        return Collections.emptyList();
+    }
 }

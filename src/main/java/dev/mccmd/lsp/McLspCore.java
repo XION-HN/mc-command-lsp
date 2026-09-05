@@ -3,12 +3,14 @@ package dev.mccmd.lsp;
 import dev.mccmd.data.CommandIndex;
 import dev.mccmd.data.ItemIndex;
 import dev.mccmd.engine.CommandCompleter;
+import dev.mccmd.engine.CommandCompleter.LineDiag;
 import dev.mccmd.engine.CommandCompleter.Result;
 import dev.mccmd.engine.CommandCompleter.Suggestion;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -58,7 +60,37 @@ public final class McLspCore {
                 .put("resolveProvider", false);
         return new JSONObject()
                 .put("textDocumentSync", sync)
-                .put("completionProvider", completion);
+                .put("completionProvider", completion)
+                .put("diagnosticProvider", new JSONObject().put("interFileDependencies", false)
+                        .put("workspaceDiagnostics", false));
+    }
+
+    /**
+     * textDocument/publishDiagnostics 载荷：对文档逐行跑语法诊断。
+     * 与网络 server 组装一致，供进程内 client 推送。
+     */
+    public JSONObject publishDiagnostics(String uri) {
+        JSONObject params = new JSONObject().put("uri", uri);
+        JSONArray diags = new JSONArray();
+        String text = docs.getOrDefault(uri, "");
+        if (!text.isEmpty()) {
+            String[] lines = text.split("\n", -1);
+            for (int i = 0; i < lines.length; i++) {
+                List<LineDiag> issues = completer.diagnose(lines[i], version);
+                for (LineDiag d : issues) {
+                    JSONObject range = new JSONObject()
+                            .put("start", new JSONObject().put("line", i).put("character", d.startCol))
+                            .put("end", new JSONObject().put("line", i).put("character", d.endCol));
+                    diags.put(new JSONObject()
+                            .put("range", range)
+                            .put("severity", 1)
+                            .put("source", "mc-command-lsp")
+                            .put("message", d.message));
+                }
+            }
+        }
+        params.put("diagnostics", diags);
+        return params;
     }
 
     public static JSONObject serverInfo() {

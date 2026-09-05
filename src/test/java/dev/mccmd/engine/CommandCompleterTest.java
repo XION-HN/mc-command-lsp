@@ -307,4 +307,50 @@ public class CommandCompleterTest {
         assertTrue(r.suggestions.stream().anyMatch(s -> "queue".equals(s.insertText)));
         assertTrue(r.suggestions.stream().anyMatch(s -> "stop".equals(s.insertText)));
     }
+
+    // ---- 选择器括号提示 + 单行诊断 ----
+
+    @Test
+    public void selector_fullBase_suggestsBracketParam() {
+        // 输入完整 @s 后，应提示可加 [可选参数]（kill 首参是选择器位）
+        Result r = cc.complete("/kill @s", "1.21.60");
+        assertTrue("@s 后应给出 @s[ 候选",
+                r.suggestions.stream().anyMatch(s -> "@s[".equals(s.insertText)));
+        assertTrue("也应保留纯 @s",
+                r.suggestions.stream().anyMatch(s -> "@s".equals(s.insertText)));
+    }
+
+    @Test
+    public void diagnose_unknownCommand_reportsLine() {
+        java.util.List<CommandCompleter.LineDiag> d = cc.diagnose("/nope arg", "1.21.60");
+        assertEquals(1, d.size());
+        assertTrue(d.get(0).message.contains("未知命令"));
+        assertEquals(1, d.get(0).startCol); // '/' 占 1 列
+        assertEquals("/nope".length(), d.get(0).endCol);
+    }
+
+    @Test
+    public void diagnose_validCommand_noError() {
+        assertTrue(cc.diagnose("/give @p diamond 1", "1.21.60").isEmpty());
+        assertTrue(cc.diagnose("/execute as @a at @s run say hi", "1.21.60").isEmpty());
+    }
+
+    @Test
+    public void diagnose_blankOrComment_noError() {
+        assertTrue(cc.diagnose("", "1.21.60").isEmpty());
+        assertTrue(cc.diagnose("   ", "1.21.60").isEmpty());
+        assertTrue(cc.diagnose("# comment", "1.21.60").isEmpty());
+    }
+
+    @Test
+    public void diagnose_badEnumParam_reports() {
+        java.util.List<CommandCompleter.LineDiag> d = cc.diagnose("/time moon", "1.21.60");
+        assertFalse("moon 非合法操作，应报错", d.isEmpty());
+    }
+
+    @Test
+    public void diagnose_executeBadSubcommand_reports() {
+        java.util.List<CommandCompleter.LineDiag> d = cc.diagnose("/execute xyz @a", "1.21.60");
+        assertFalse("xyz 不是 execute 子命令，应报错", d.isEmpty());
+    }
 }
